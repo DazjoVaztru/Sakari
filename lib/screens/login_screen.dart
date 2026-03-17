@@ -43,7 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
       // ==========================================
       // GUARDAMOS EL TOKEN EN LA MEMORIA:
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', resultado['token']);
+      // ¡Aquí está la magia! Le pedimos el 'access_token'
+      await prefs.setString('token', resultado['access_token']);
       // ==========================================
 
       if (mounted) {
