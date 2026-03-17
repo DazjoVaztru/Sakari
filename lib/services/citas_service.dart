@@ -54,34 +54,32 @@ class CitasService {
   }
 
   // Función para obtener los horarios disponibles de una fecha
-  static Future<List<String>> obtenerHorariosDisponibles(DateTime fecha) async {
+  // Función para obtener los horarios REALES disponibles de una fecha
+  static Future<List<String>> obtenerHorariosDisponibles(
+    String token,
+    DateTime fecha,
+  ) async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando tu equipo haga el endpoint GET) ===
-      final response = await http.get(Uri.parse('$baseUrl/citas/horarios?fecha=${fecha.toIso8601String()}'));
+      String fechaFormateada =
+          "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/horas-disponibles?fecha=$fechaFormateada'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (response.statusCode == 200) {
-        List<dynamic> data = jsonDecode(response.body);
+        final jsonResponse = jsonDecode(response.body);
+        List<dynamic> data = jsonResponse['data'];
         return data.map((hora) => hora.toString()).toList();
       }
       return [];
-      */
-
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (fecha.weekday == DateTime.saturday ||
-          fecha.weekday == DateTime.sunday) {
-        return ["09:00 AM", "10:30 AM", "12:00 PM"];
-      }
-
-      return [
-        "09:00 AM",
-        "10:30 AM",
-        "01:00 PM",
-        "04:15 PM",
-        "05:30 PM",
-        "06:45 PM",
-      ];
     } catch (e) {
+      print("Error al obtener horarios: $e");
       return [];
     }
   }

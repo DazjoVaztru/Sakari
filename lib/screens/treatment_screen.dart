@@ -12,7 +12,12 @@ class TreatmentScreen extends StatefulWidget {
 
 class _TreatmentScreenState extends State<TreatmentScreen> {
   List<TratamientoModel> listaTratamientos = [];
+  List<Map<String, dynamic>> listaActivos = [];
   bool isLoading = true;
+
+  // Ponemos el token aquí arriba para que TODA la pantalla lo pueda usar
+  // (Puse el que te devolvió tu consola en la prueba exitosa)
+  final String miToken = "6|cKZrKlJShx46Lq45A1BSNB92bIqRU5IxwWFRr93B3f2e936d";
 
   @override
   void initState() {
@@ -21,14 +26,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   }
 
   Future<void> _cargarTratamientos() async {
-    // Pegamos el token real que te dio la consola al hacer login:
-    String miToken = "5|56CQBwmW9DAAzdunirUcMRr8bTp5wvXdLwFPWuCg4081f9a6";
-
+    // Descargamos ambas cosas desde Laravel
     final tratamientos = await TratamientosService.obtenerCatalogo(miToken);
+    final activos = await TratamientosService.obtenerTratamientosActivos(
+      miToken,
+    );
 
     if (mounted) {
       setState(() {
         listaTratamientos = tratamientos;
+        listaActivos = activos; // Guardamos los activos reales
         isLoading = false;
       });
     }
@@ -56,7 +63,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- SECCIÓN 1: EN CURSO ---
+                  // --- SECCIÓN 1: EN CURSO (AHORA ES DINÁMICA) ---
                   const Text(
                     "En curso",
                     style: TextStyle(
@@ -66,104 +73,22 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0277BD).withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Ortodoncia (Brackets)",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                "Activo",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        const Text(
-                          "Ajuste de arcos superiores e inferiores.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          "Progreso del tratamiento",
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: LinearProgressIndicator(
-                            value: 0.4,
-                            backgroundColor: Colors.white.withOpacity(0.3),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                            minHeight: 6,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Inicio: Ene 2025",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              "Est: Dic 2026",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(height: 30),
+                  if (listaActivos.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 20),
+                      child: Text(
+                        "No tienes tratamientos activos en este momento.",
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    )
+                  else
+                    // Dibujamos una tarjeta por cada tratamiento activo real
+                    ...listaActivos
+                        .map((activo) => _buildActivoCard(activo))
+                        .toList(),
+
+                  const SizedBox(height: 15),
 
                   // --- SECCIÓN 2: SERVICIOS DISPONIBLES ---
                   const Text(
@@ -199,7 +124,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                       itemBuilder: (context, index) {
                         final tratamiento = listaTratamientos[index];
                         return _buildServicioCard(
-                          tratamiento.id, // Le pasamos el ID a la tarjeta
+                          tratamiento.id,
                           tratamiento.nombre,
                           _obtenerDescripcion(tratamiento.categoria),
                           tratamiento.precio,
@@ -210,6 +135,90 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  // --- WIDGET PARA TRATAMIENTO ACTIVO REAL ---
+  Widget _buildActivoCard(Map<String, dynamic> activo) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0277BD).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  activo['nombre'] ?? 'Tratamiento',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  activo['estado'] ?? 'Activo',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Progreso del tratamiento",
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: 0.2, // Podrías hacerlo dinámico después desde el backend
+              backgroundColor: Colors.white.withOpacity(0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Inicio: ${activo['fecha_inicio'] ?? ''}",
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -275,7 +284,6 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
             ),
           ),
           ElevatedButton(
-            // AL PRESIONAR AGENDAR, ABRIMOS EL MODAL
             onPressed: () => _mostrarModalAgendar(idServicio, titulo),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0277BD),
@@ -296,7 +304,6 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   void _mostrarModalAgendar(int idServicio, String nombreServicio) {
     final BuildContext contextoPrincipal = context;
 
-    // Ajuste seguro para evitar el error rojo del calendario
     final DateTime hoy = DateTime.now();
     final DateTime diaActual = DateTime(hoy.year, hoy.month, hoy.day);
 
@@ -320,9 +327,13 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                 isLoadingHorarios = true;
                 horaSeleccionada = null;
               });
+
+              // AHORA MANDAMOS EL TOKEN AL SERVICIO PARA VER LOS HORARIOS REALES
               final horarios = await CitasService.obtenerHorariosDisponibles(
+                miToken,
                 nuevaFecha,
               );
+
               if (mounted) {
                 setModalState(() {
                   horariosDisponibles = horarios;
@@ -493,18 +504,15 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                                       ),
                                     );
 
-                                    // Pega aquí también el token de prueba (temporalmente)
-                                    String miToken =
-                                        "5|56CQBwmW9DAAzdunirUcMRr8bTp5wvXdLwFPWuCg4081f9a6";
+                                    // Usamos el token global para agendar
+                                    bool exito =
+                                        await CitasService.agendarNuevaCita(
+                                          miToken,
+                                          idServicio,
+                                          fechaTemp,
+                                          horaSeleccionada!,
+                                        );
 
-                                    // Llama a la nueva función con 4 parámetros
-                                    bool
-                                    exito = await CitasService.agendarNuevaCita(
-                                      miToken,
-                                      idServicio,
-                                      fechaTemp,
-                                      horaSeleccionada!, // Asegúrate de pasar la hora
-                                    );
                                     if (exito && mounted) {
                                       ScaffoldMessenger.of(
                                         contextoPrincipal,
@@ -516,6 +524,8 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                                           backgroundColor: Colors.green,
                                         ),
                                       );
+                                      // Recargamos la pantalla para mostrar el nuevo tratamiento en curso
+                                      _cargarTratamientos();
                                     } else if (mounted) {
                                       ScaffoldMessenger.of(
                                         contextoPrincipal,

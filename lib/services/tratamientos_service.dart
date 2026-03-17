@@ -35,4 +35,27 @@ class TratamientosService {
       return [];
     }
   }
+
+  static Future<List<Map<String, dynamic>>> obtenerTratamientosActivos(
+    String token,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/tratamientos-activos'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(jsonResponse['data']);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }
