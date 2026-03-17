@@ -107,16 +107,16 @@ class AuthService {
   }
 
   // --- 3. RECUPERAR CONTRASEÑA REAL ---
-  // --- 3. RECUPERAR CONTRASEÑA REAL ---
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      // Cambiamos el print para que te diga la verdad en la consola
-      print('Intentando conectar a: $baseUrl/recuperar-password');
+      // 🚨 Apuntando directamente a la API de Node.js en Railway
+      final String nodeApiUrl =
+          'https://dentalconnectapi-production.up.railway.app/api/auth/forgot-password';
+
+      print('Intentando conectar a Node.js: $nodeApiUrl');
 
       final response = await http.post(
-        Uri.parse(
-          '$baseUrl/recuperar-password',
-        ), // <--- EL CAMBIO MÁS IMPORTANTE
+        Uri.parse(nodeApiUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -136,6 +136,7 @@ class AuthService {
 
       final data = jsonDecode(response.body);
 
+      // Si Node.js devuelve un 200, fue exitoso
       if (response.statusCode == 200) {
         return {
           'success': true,
