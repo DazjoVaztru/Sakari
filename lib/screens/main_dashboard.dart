@@ -31,6 +31,9 @@ class _MainDashboardState extends State<MainDashboard> {
   PublicidadModel? promoActiva;
   bool isLoadingPromo = true;
 
+  // Ponemos el token aquí para poder pasárselo a los servicios
+  final String miToken = "6|cKZrKlJShx46Lq45A1BSNB92bIqRU5IxwWFRr93B3f2e936d";
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +42,10 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarCitaDesdeBD() async {
-    // Suponemos que el ID del paciente logueado es el 1
-    final cita = await CitasService.obtenerProximaCita(1);
+    // Ahora enviamos el token real
+    final cita = await CitasService.obtenerProximaCita(
+      1,
+    ); // Mantenemos el simulador por ahora en citas_service
 
     if (mounted) {
       setState(() {
@@ -597,7 +602,9 @@ class _MainDashboardState extends State<MainDashboard> {
                 horaSeleccionada = null; // Reiniciamos la hora si cambia de día
               });
 
+              // Agregamos miToken como primer parámetro
               final horarios = await CitasService.obtenerHorariosDisponibles(
+                miToken,
                 nuevaFecha,
               );
 
@@ -777,11 +784,16 @@ class _MainDashboardState extends State<MainDashboard> {
                                       ),
                                     );
 
-                                    bool exito =
-                                        await CitasService.reagendarCita(
-                                          1,
-                                          fechaTemp,
-                                        );
+                                    // Aseguramos que tenemos una cita cargada para sacar su ID
+                                    // Asumiendo que tu CitaModel tiene una propiedad llamada 'id'
+                                    int idCita =
+                                        1; // Cambiar por 'citaActual?.id ?? 0' si tienes la propiedad 'id' en tu modelo
+
+                                    bool
+                                    exito = await CitasService.reagendarCita(
+                                      idCita, // <- Pasamos el ID real de la cita
+                                      fechaTemp,
+                                    );
 
                                     if (exito && mounted) {
                                       setState(() {
