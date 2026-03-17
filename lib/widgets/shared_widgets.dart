@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Añadido para los formatters de texto
 
 // 1. La Tarjeta Blanca con Sombra
 Widget buildFormCard(
@@ -37,18 +38,29 @@ Widget buildFormCard(
   );
 }
 
-// 2. Campo de Texto Estilizado
+// 2. Campo de Texto Estilizado (MODIFICADO)
 Widget buildInput(
   IconData icon,
   String hint, {
   bool isPassword = false,
   TextEditingController? controller,
+  Widget? suffixIcon, // <-- Nuevo: Para poner el ojito
+  TextInputType?
+  keyboardType, // <-- Nuevo: Para cambiar el tipo de teclado (números)
+  List<TextInputFormatter>?
+  inputFormatters, // <-- Nuevo: Para forzar solo dígitos
+  int? maxLength, // <-- Nuevo: Para limitar a 10 caracteres
 }) {
   return TextField(
-    controller: controller, // <-- Agregamos el controlador aquí
+    controller: controller,
     obscureText: isPassword,
+    keyboardType: keyboardType,
+    inputFormatters: inputFormatters,
+    maxLength: maxLength,
     decoration: InputDecoration(
+      counterText: "", // Oculta el contador de texto "0/10" debajo del input
       prefixIcon: Icon(icon, color: const Color(0xFF0277BD)),
+      suffixIcon: suffixIcon, // Agregamos el ojito aquí
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey[400]),
       contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),

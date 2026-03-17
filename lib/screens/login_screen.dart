@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _obscurePassword = true; // Variable para controlar el ojito
+  bool _obscurePassword = true;
 
   void _iniciarSesion() async {
     final email = _emailController.text.trim();
@@ -39,8 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultado = await AuthService.login(email, password);
 
     if (resultado['success'] == true) {
-      print("🕵️‍♂️ RESULTADO COMPLETO DE AUTH: $resultado");
-
       String tokenDefinitivo =
           resultado['access_token'] ??
           resultado['token'] ??
@@ -48,16 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
           resultado['data']?['token'] ??
           "";
 
-      print("🔑 TOKEN EXTRAÍDO: $tokenDefinitivo");
-
       if (tokenDefinitivo.isEmpty) {
         if (mounted) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "Error interno: No se pudo extraer el token de la memoria.",
-              ),
+              content: Text("Error interno: No se pudo extraer el token."),
               backgroundColor: Colors.red,
             ),
           );
@@ -136,35 +130,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // Campo de Contraseña Modificado (con ojito)
-                    TextFormField(
+                    // Contraseña usando tu buildInput con el ojito
+                    buildInput(
+                      Icons.lock_outline,
+                      "Contraseña",
+                      isPassword: _obscurePassword, // Vinculado al estado
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(
-                          Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: Colors.grey,
                         ),
-                        labelText: "Contraseña",
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide.none,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
                     ),
 
