@@ -21,7 +21,12 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   }
 
   Future<void> _cargarTratamientos() async {
-    final tratamientos = await TratamientosService.obtenerCatalogo();
+    // IMPORTANTE: Aquí debes leer tu token real (desde SharedPreferences o SecureStorage)
+    // Para hacer la prueba rápido, pon el token que te imprimió la consola al hacer Login.
+    String miToken = "AQUI_TU_TOKEN_REAL";
+
+    final tratamientos = await TratamientosService.obtenerCatalogo(miToken);
+
     if (mounted) {
       setState(() {
         listaTratamientos = tratamientos;
