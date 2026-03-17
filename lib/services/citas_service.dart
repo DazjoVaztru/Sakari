@@ -3,8 +3,9 @@ import 'package:http/http.dart' as http;
 import '../models/cita_model.dart';
 
 class CitasService {
-  // Cuando tu equipo termine, pondremos aquí la URL real de Railway
-  static const String baseUrl = 'http://10.0.2.2:4000/api';
+  // URL real de Railway
+  static const String baseUrl =
+      'https://proyectosakaridentalconnect-production.up.railway.app/api';
 
   static Future<CitaModel?> obtenerProximaCita(int idPaciente) async {
     try {
@@ -17,13 +18,10 @@ class CitasService {
       return null;
       */
 
-      // === SIMULADOR TEMPORAL (Basado en tu dentalconnect.sql) ===
-      await Future.delayed(
-        const Duration(seconds: 2),
-      ); // Simulamos que va a internet
+      // === SIMULADOR TEMPORAL ===
+      await Future.delayed(const Duration(seconds: 2));
 
       return CitaModel(
-        // Cambia el 01 por un 20 (o cualquier fecha que sea en el futuro)
         fechaHoraInicio: DateTime.parse("2026-03-20T13:50:00"),
         estadoCita: "pendiente",
         motivo: "Brackets",
@@ -42,17 +40,16 @@ class CitasService {
       final response = await http.put(
         Uri.parse('$baseUrl/citas/$idCita/reagendar'),
         headers: {'Content-Type': 'application/json'},
-        // Enviamos la nueva fecha en formato texto a la BD
         body: jsonEncode({'nueva_fecha': nuevaFecha.toIso8601String()}), 
       );
-      return response.statusCode == 200; // Retorna true si fue exitoso
+      return response.statusCode == 200;
       */
 
       // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2)); // Simulamos el guardado
-      return true; // Simulamos que la BD respondió con un "OK"
+      await Future.delayed(const Duration(seconds: 2));
+      return true;
     } catch (e) {
-      return false; // Si hay error de conexión, regresa false
+      return false;
     }
   }
 
@@ -60,7 +57,6 @@ class CitasService {
   static Future<List<String>> obtenerHorariosDisponibles(DateTime fecha) async {
     try {
       /* // === CÓDIGO REAL (Descomentar cuando tu equipo haga el endpoint GET) ===
-      // Ejemplo: mandaríamos la fecha al backend para que revise la tabla de citas y bloqueos
       final response = await http.get(Uri.parse('$baseUrl/citas/horarios?fecha=${fecha.toIso8601String()}'));
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
@@ -70,15 +66,13 @@ class CitasService {
       */
 
       // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 1)); // Simulamos la carga
+      await Future.delayed(const Duration(seconds: 1));
 
-      // Simulamos que los fines de semana hay menos horarios disponibles
       if (fecha.weekday == DateTime.saturday ||
           fecha.weekday == DateTime.sunday) {
         return ["09:00 AM", "10:30 AM", "12:00 PM"];
       }
 
-      // Horarios para entre semana
       return [
         "09:00 AM",
         "10:30 AM",
@@ -92,31 +86,56 @@ class CitasService {
     }
   }
 
-  // Función para AGENDAR una nueva cita
+  // ========================================================
+  // NUEVA FUNCIÓN PARA AGENDAR CONECTADA A LA API REAL
+  // ========================================================
   static Future<bool> agendarNuevaCita(
-    int idPaciente,
+    String token,
     int idServicio,
     DateTime fecha,
+    String horaSeleccionada, // Ej: "10:30 AM"
   ) async {
     try {
-      /* // === CÓDIGO REAL (Cuando el equipo haga el endpoint POST) ===
+      // Formatear la fecha a YYYY-MM-DD
+      String fechaFormateada =
+          "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
+
+      // Convertir "10:30 AM" a formato militar "10:30" o "14:30"
+      String horaMilitar = _convertirHoraMilitar(horaSeleccionada);
+
       final response = await http.post(
-        Uri.parse('$baseUrl/citas'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/agendar-cita'), // Apunta a tu ruta real
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
-          'id_paciente': idPaciente,
           'id_servicio': idServicio,
-          'fecha': fecha.toIso8601String()
+          'fecha': fechaFormateada,
+          'hora': horaMilitar,
         }),
       );
-      return response.statusCode == 201; 
-      */
 
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-      return true;
+      print("Respuesta al agendar: ${response.statusCode} - ${response.body}");
+      return response.statusCode == 201;
     } catch (e) {
+      print("Error al agendar cita: $e");
       return false;
     }
+  }
+
+  // Helper interno para transformar "10:30 PM" a "22:30"
+  static String _convertirHoraMilitar(String horaAmPm) {
+    int horas = int.parse(horaAmPm.split(":")[0]);
+    String minutos = horaAmPm.split(":")[1].substring(0, 2);
+    String amPm = horaAmPm.split(" ")[1];
+
+    if (amPm == "PM" && horas != 12) {
+      horas += 12;
+    } else if (amPm == "AM" && horas == 12) {
+      horas = 0;
+    }
+    return "${horas.toString().padLeft(2, '0')}:$minutos";
   }
 }

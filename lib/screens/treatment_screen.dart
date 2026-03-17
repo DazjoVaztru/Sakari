@@ -21,9 +21,8 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   }
 
   Future<void> _cargarTratamientos() async {
-    // IMPORTANTE: Aquí debes leer tu token real (desde SharedPreferences o SecureStorage)
-    // Para hacer la prueba rápido, pon el token que te imprimió la consola al hacer Login.
-    String miToken = "AQUI_TU_TOKEN_REAL";
+    // Pegamos el token real que te dio la consola al hacer login:
+    String miToken = "5|56CQBwmW9DAAzdunirUcMRr8bTp5wvXdLwFPWuCg4081f9a6";
 
     final tratamientos = await TratamientosService.obtenerCatalogo(miToken);
 
@@ -494,13 +493,18 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                                       ),
                                     );
 
-                                    bool exito =
-                                        await CitasService.agendarNuevaCita(
-                                          1,
-                                          idServicio,
-                                          fechaTemp,
-                                        );
+                                    // Pega aquí también el token de prueba (temporalmente)
+                                    String miToken =
+                                        "5|56CQBwmW9DAAzdunirUcMRr8bTp5wvXdLwFPWuCg4081f9a6";
 
+                                    // Llama a la nueva función con 4 parámetros
+                                    bool
+                                    exito = await CitasService.agendarNuevaCita(
+                                      miToken,
+                                      idServicio,
+                                      fechaTemp,
+                                      horaSeleccionada!, // Asegúrate de pasar la hora
+                                    );
                                     if (exito && mounted) {
                                       ScaffoldMessenger.of(
                                         contextoPrincipal,
