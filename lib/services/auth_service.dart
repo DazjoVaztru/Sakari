@@ -35,10 +35,12 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
         return {
           'success': true,
-          'message': data['message'] ?? 'Bienvenido',
-          'token': data['token'],
+          'message': 'Bienvenido',
+          // Le decimos que busque exactamente "access_token" en la respuesta de Laravel
+          'token': jsonResponse['access_token'],
         };
       } else {
         return {
@@ -105,14 +107,19 @@ class AuthService {
   }
 
   // --- 3. RECUPERAR CONTRASEÑA REAL ---
+  // --- 3. RECUPERAR CONTRASEÑA REAL ---
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      print('Intentando conectar a: $baseUrl/forgot-password');
+      // Cambiamos el print para que te diga la verdad en la consola
+      print('Intentando conectar a: $baseUrl/recuperar-password');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/forgot-password'),
+        Uri.parse(
+          '$baseUrl/recuperar-password',
+        ), // <--- EL CAMBIO MÁS IMPORTANTE
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json', // <-- Aplicado aquí también
+          'Accept': 'application/json',
         },
         body: jsonEncode({'email': email}),
       );
@@ -138,11 +145,13 @@ class AuthService {
         return {
           'success': false,
           'message':
-              data['error'] ?? data['message'] ?? 'No se encontró el correo.',
+              data['error'] ??
+              data['message'] ??
+              'No se pudo enviar el correo.',
         };
       }
     } catch (e) {
-      print('Error real en Forgot Password: $e');
+      print('Error en forgotPassword: $e');
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }

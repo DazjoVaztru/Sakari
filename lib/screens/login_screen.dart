@@ -40,11 +40,39 @@ class _LoginScreenState extends State<LoginScreen> {
     final resultado = await AuthService.login(email, password);
 
     if (resultado['success'] == true) {
+      // 1. Imprimimos en consola EXACTAMENTE qué nos devolvió AuthService
+      print("🕵️‍♂️ RESULTADO COMPLETO DE AUTH: $resultado");
+
+      // 2. Buscamos el token en todas las llaves posibles que podría tener
+      String tokenDefinitivo =
+          resultado['access_token'] ??
+          resultado['token'] ??
+          resultado['data']?['access_token'] ??
+          resultado['data']?['token'] ??
+          "";
+
+      print("🔑 TOKEN EXTRAÍDO: $tokenDefinitivo");
+
+      // 3. Si por alguna razón sigue vacío, avisamos y no crasheamos
+      if (tokenDefinitivo.isEmpty) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Error interno: No se pudo extraer el token de la memoria.",
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       // ==========================================
-      // GUARDAMOS EL TOKEN EN LA MEMORIA:
+      // 4. GUARDAMOS EL TOKEN EN LA MEMORIA DE FORMA SEGURA:
       final prefs = await SharedPreferences.getInstance();
-      // ¡Aquí está la magia! Le pedimos el 'access_token'
-      await prefs.setString('token', resultado['access_token']);
+      await prefs.setString('token', tokenDefinitivo);
       // ==========================================
 
       if (mounted) {
