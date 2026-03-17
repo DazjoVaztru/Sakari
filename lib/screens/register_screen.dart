@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Importante para las validaciones de números
 import '../widgets/shared_widgets.dart';
 import '../services/auth_service.dart';
 
@@ -15,6 +16,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true; // Variable para controlar el ojito
 
   void _activarCuenta() async {
     final email = _emailController.text.trim();
@@ -32,10 +34,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // 2. Mostrar carga
+    // 2. Validar que el teléfono tenga exactamente 10 dígitos y solo sean números
+    if (telefono.length != 10 || !RegExp(r'^[0-9]+$').hasMatch(telefono)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("El teléfono debe contener exactamente 10 números."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 3. Validar que la contraseña tenga al menos un carácter especial
+    if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "La contraseña debe incluir al menos un carácter especial (ej. #, !).",
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 4. Mostrar carga
     setState(() => _isLoading = true);
 
-    // 3. Llamar al servicio
+    // 5. Llamar al servicio
     final resultado = await AuthService.activarCuenta(
       email,
       telefono,
@@ -45,9 +71,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // 4. Evaluar resultado
+    // 6. Evaluar resultado
     if (resultado['success']) {
-      // Si existe en la BD, se activa y regresa al Login
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message']),
@@ -56,14 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       Navigator.pop(context);
     } else {
-      // Si NO existe, lanza la alerta roja
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resultado['message']),
           backgroundColor: Colors.red,
-          duration: const Duration(
-            seconds: 4,
-          ), // Le damos más tiempo para que lo lea
+          duration: const Duration(seconds: 4),
         ),
       );
     }
@@ -113,17 +135,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _emailController,
                   ),
                   const SizedBox(height: 15),
-                  buildInput(
-                    Icons.phone_android,
-                    "Teléfono (a 10 dígitos)",
+
+                  // Campo de Teléfono Modificado (10 dígitos, solo números)
+                  TextFormField(
                     controller: _telefonoController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // Fuerza a que solo se escriban números
+                    ],
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.phone_android,
+                        color: Colors.grey,
+                      ),
+                      labelText: "Teléfono (a 10 dígitos)",
+                      counterText: "", // Oculta el texto de "0/10"
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 15),
-                  buildInput(
-                    Icons.lock_outline,
-                    "Crea una contraseña",
-                    isPassword: true,
+
+                  // Campo de Contraseña Modificado (con ojito)
+                  TextFormField(
                     controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: Colors.grey,
+                      ),
+                      labelText: "Crea una contraseña",
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 25),
 

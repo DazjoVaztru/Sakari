@@ -3,7 +3,7 @@ import '../widgets/shared_widgets.dart';
 import 'main_dashboard.dart';
 import 'recovery_screen.dart';
 import 'register_screen.dart';
-import '../services/auth_service.dart'; // Importamos nuestro servicio
+import '../services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,11 +14,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controladores para leer el texto de los inputs
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true; // Variable para controlar el ojito
 
   void _iniciarSesion() async {
     final email = _emailController.text.trim();
@@ -36,14 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Mandamos las variables limpias (email y password)
     final resultado = await AuthService.login(email, password);
 
     if (resultado['success'] == true) {
-      // 1. Imprimimos en consola EXACTAMENTE qué nos devolvió AuthService
       print("🕵️‍♂️ RESULTADO COMPLETO DE AUTH: $resultado");
 
-      // 2. Buscamos el token en todas las llaves posibles que podría tener
       String tokenDefinitivo =
           resultado['access_token'] ??
           resultado['token'] ??
@@ -53,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       print("🔑 TOKEN EXTRAÍDO: $tokenDefinitivo");
 
-      // 3. Si por alguna razón sigue vacío, avisamos y no crasheamos
       if (tokenDefinitivo.isEmpty) {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -69,11 +65,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // ==========================================
-      // 4. GUARDAMOS EL TOKEN EN LA MEMORIA DE FORMA SEGURA:
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', tokenDefinitivo);
-      // ==========================================
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -136,18 +129,43 @@ class _LoginScreenState extends State<LoginScreen> {
                   context,
                   title: "Iniciar Sesión",
                   children: [
-                    // Conectamos los inputs con sus controladores
                     buildInput(
                       Icons.email_outlined,
                       "Correo electrónico",
                       controller: _emailController,
                     ),
                     const SizedBox(height: 15),
-                    buildInput(
-                      Icons.lock_outline,
-                      "Contraseña",
-                      isPassword: true,
+
+                    // Campo de Contraseña Modificado (con ojito)
+                    TextFormField(
                       controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(
+                          Icons.lock_outline,
+                          color: Colors.grey,
+                        ),
+                        labelText: "Contraseña",
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
                     ),
 
                     Align(
@@ -169,7 +187,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // Botón con estado de carga
                     _isLoading
                         ? const CircularProgressIndicator(
                             color: Color(0xFF0277BD),

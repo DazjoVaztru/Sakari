@@ -190,19 +190,45 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  activo['estado'] ?? 'Activo',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
+              Builder(
+                builder: (context) {
+                  // Leemos el estado que viene del backend
+                  String estadoBackend = (activo['estado'] ?? 'Activo')
+                      .toString()
+                      .toLowerCase();
+
+                  // Definimos textos más profesionales
+                  String estadoMostrar = "En Curso";
+                  Color colorFondo = Colors.white.withOpacity(0.3);
+
+                  if (estadoBackend == 'concluido' ||
+                      estadoBackend == 'finalizado' ||
+                      estadoBackend == 'completado') {
+                    estadoMostrar = "Alta Médica"; // O "Tratamiento Concluido"
+                    colorFondo = Colors.green.withOpacity(
+                      0.8,
+                    ); // Lo pintamos verde para resaltar el éxito
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorFondo,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      estadoMostrar,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
