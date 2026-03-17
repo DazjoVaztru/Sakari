@@ -38,8 +38,20 @@ class _MainDashboardState extends State<MainDashboard> {
   @override
   void initState() {
     super.initState();
-    _cargarCitaDesdeBD();
-    _cargarPromocion();
+    _inicializarPantalla();
+  }
+
+  Future<void> _inicializarPantalla() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      miToken = prefs.getString('token') ?? "";
+    });
+
+    if (miToken.isNotEmpty) {
+      // Una vez que tenemos el token de la memoria, ahora sí cargamos la base de datos
+      _cargarCitaDesdeBD();
+      _cargarPromocion();
+    }
   }
 
   Future<void> _cargarCitaDesdeBD() async {
