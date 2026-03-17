@@ -192,22 +192,23 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
               ),
               Builder(
                 builder: (context) {
-                  // Leemos el estado que viene del backend
-                  String estadoBackend = (activo['estado'] ?? 'Activo')
+                  // Normalizamos el estado que viene del servidor
+                  String estadoBackend = (activo['estado'] ?? 'confirmada')
                       .toString()
                       .toLowerCase();
 
-                  // Definimos textos más profesionales
-                  String estadoMostrar = "En Curso";
+                  // Configuraciones por defecto (Estado Activo)
+                  String estadoMostrar = "Activo";
                   Color colorFondo = Colors.white.withOpacity(0.3);
 
-                  if (estadoBackend == 'concluido' ||
+                  // Si el dentista ya marcó la cita como atendida o finalizada
+                  if (estadoBackend == 'atendida' ||
                       estadoBackend == 'finalizado' ||
-                      estadoBackend == 'completado') {
-                    estadoMostrar = "Alta Médica"; // O "Tratamiento Concluido"
+                      estadoBackend == 'concluido') {
+                    estadoMostrar = "Atendido";
                     colorFondo = Colors.green.withOpacity(
                       0.8,
-                    ); // Lo pintamos verde para resaltar el éxito
+                    ); // Color verde para indicar conclusión
                   }
 
                   return Container(
