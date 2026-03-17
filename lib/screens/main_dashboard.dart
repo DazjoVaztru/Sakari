@@ -10,6 +10,7 @@ import '../services/citas_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/publicidad_model.dart';
 import '../services/publicidad_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainDashboard extends StatefulWidget {
   const MainDashboard({super.key});
@@ -32,7 +33,7 @@ class _MainDashboardState extends State<MainDashboard> {
   bool isLoadingPromo = true;
 
   // Ponemos el token aquí para poder pasárselo a los servicios
-  final String miToken = "6|cKZrKlJShx46Lq45A1BSNB92bIqRU5IxwWFRr93B3f2e936d";
+  String miToken = "";
 
   @override
   void initState() {

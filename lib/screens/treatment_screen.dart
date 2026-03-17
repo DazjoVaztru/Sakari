@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/tratamiento_model.dart';
 import '../services/tratamientos_service.dart';
 import '../services/citas_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TreatmentScreen extends StatefulWidget {
   const TreatmentScreen({super.key});
@@ -17,16 +18,29 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
 
   // Ponemos el token aquí arriba para que TODA la pantalla lo pueda usar
   // (Puse el que te devolvió tu consola en la prueba exitosa)
-  final String miToken = "6|cKZrKlJShx46Lq45A1BSNB92bIqRU5IxwWFRr93B3f2e936d";
+  String miToken = "";
 
   @override
   void initState() {
     super.initState();
-    _cargarTratamientos();
+    _inicializarPantalla(); // <- Cambiamos esto
+  }
+
+  // NUEVA FUNCIÓN QUE LEE LA MEMORIA PRIMERO
+  Future<void> _inicializarPantalla() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Leemos el token de la memoria. Si no hay, dejamos un string vacío
+      miToken = prefs.getString('token') ?? "";
+    });
+
+    if (miToken.isNotEmpty) {
+      _cargarTratamientos();
+    }
   }
 
   Future<void> _cargarTratamientos() async {
-    // Descargamos ambas cosas desde Laravel
+    // Aquí ya NO pegamos el token a mano, usamos la variable miToken que ya se llenó
     final tratamientos = await TratamientosService.obtenerCatalogo(miToken);
     final activos = await TratamientosService.obtenerTratamientosActivos(
       miToken,
@@ -35,7 +49,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
     if (mounted) {
       setState(() {
         listaTratamientos = tratamientos;
-        listaActivos = activos; // Guardamos los activos reales
+        listaActivos = activos;
         isLoading = false;
       });
     }

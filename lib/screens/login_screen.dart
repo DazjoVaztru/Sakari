@@ -4,6 +4,7 @@ import 'main_dashboard.dart';
 import 'recovery_screen.dart';
 import 'register_screen.dart';
 import '../services/auth_service.dart'; // Importamos nuestro servicio
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,27 +36,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Llamamos a nuestro simulador
+    // Mandamos las variables limpias (email y password)
     final resultado = await AuthService.login(email, password);
 
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+    if (resultado['success'] == true) {
+      // ==========================================
+      // GUARDAMOS EL TOKEN EN LA MEMORIA:
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', resultado['token']);
+      // ==========================================
 
-    if (resultado['success']) {
-      // Si el login es correcto, navegamos al Dashboard y borramos el historial para no poder regresar con el botón "Atrás"
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainDashboard()),
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainDashboard()),
+        );
+      }
     } else {
-      // Si falla, mostramos el error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(resultado['message']),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(resultado['message'] ?? "Error al iniciar sesión"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
