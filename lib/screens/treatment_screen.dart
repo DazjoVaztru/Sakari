@@ -450,14 +450,31 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F9FA),
+                          color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: CalendarDatePicker(
                           initialDate: fechaTemp,
-                          firstDate: diaActual,
+                          firstDate: DateTime.now(),
                           lastDate: DateTime(2030),
-                          onDateChanged: (newDate) => cargarHorarios(newDate),
+                          // 👇 REPETIMOS LA MAGIA AQUÍ 👇
+                          selectableDayPredicate: (DateTime day) {
+                            String fechaStr =
+                                "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+
+                            if (_diasBloqueados.contains(fechaStr)) {
+                              return false; // Día tachado desde el SaaS
+                            }
+                            if (day.weekday == DateTime.sunday) {
+                              return false; // Domingo cerrado
+                            }
+                            return true;
+                          },
+                          // ☝️ FIN DE LA MAGIA ☝️
+                          onDateChanged: (newDate) {
+                            cargarHorarios(newDate);
+                          },
                         ),
                       ),
                     ),

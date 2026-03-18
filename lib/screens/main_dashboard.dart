@@ -31,6 +31,7 @@ class _MainDashboardState extends State<MainDashboard> {
   Color colorEstado = Colors.grey;
   PublicidadModel? promoActiva;
   bool isLoadingPromo = true;
+  List<String> _diasBloqueados = [];
 
   // Ponemos el token aquí para poder pasárselo a los servicios
   String miToken = "";
@@ -39,6 +40,16 @@ class _MainDashboardState extends State<MainDashboard> {
   void initState() {
     super.initState();
     _inicializarPantalla();
+    _cargarDiasBloqueados();
+  }
+
+  void _cargarDiasBloqueados() async {
+    final dias = await CitasService.obtenerDiasBloqueados(miToken);
+    if (mounted) {
+      setState(() {
+        _diasBloqueados = dias;
+      });
+    }
   }
 
   Future<void> _inicializarPantalla() async {
@@ -667,15 +678,31 @@ class _MainDashboardState extends State<MainDashboard> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F9FA),
+                          color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: CalendarDatePicker(
                           initialDate: fechaTemp,
                           firstDate: DateTime.now(),
                           lastDate: DateTime(2030),
-                          // Al tocar un día, llamamos a la función que va a la base de datos
-                          onDateChanged: (newDate) => cargarHorarios(newDate),
+                          // 👇 ESTA ES LA MAGIA QUE BLOQUEA LOS DÍAS 👇
+                          selectableDayPredicate: (DateTime day) {
+                            String fechaStr =
+                                "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+
+                            if (_diasBloqueados.contains(fechaStr)) {
+                              return false; // El día está bloqueado por el SaaS
+                            }
+                            if (day.weekday == DateTime.sunday) {
+                              return false; // Domingo cerrado
+                            }
+                            return true; // Día libre
+                          },
+                          // ☝️ FIN DE LA MAGIA ☝️
+                          onDateChanged: (newDate) {
+                            cargarHorarios(newDate);
+                          },
                         ),
                       ),
                     ),
