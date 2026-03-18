@@ -32,6 +32,7 @@ class _MainDashboardState extends State<MainDashboard> {
   PublicidadModel? promoActiva;
   bool isLoadingPromo = true;
   List<String> _diasBloqueados = [];
+  List<int> _diasSemanaCerrados = [];
 
   // Ponemos el token aquí para poder pasárselo a los servicios
   String miToken = "";
@@ -57,10 +58,12 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   void _cargarDiasBloqueados() async {
-    final dias = await CitasService.obtenerDiasBloqueados(miToken);
+    final data = await CitasService.obtenerDiasBloqueados(miToken);
     if (mounted) {
       setState(() {
-        _diasBloqueados = dias;
+        _diasBloqueados = data['fechas'];
+        _diasSemanaCerrados =
+            data['dias_semana']; // Guardamos los días de la semana
       });
     }
   }
@@ -691,12 +694,16 @@ class _MainDashboardState extends State<MainDashboard> {
                             String fechaStr =
                                 "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
 
+                            // 1. Bloquea vacaciones o días feriados
                             if (_diasBloqueados.contains(fechaStr)) {
-                              return false; // El día está bloqueado por el SaaS
+                              return false;
                             }
-                            if (day.weekday == DateTime.sunday) {
-                              return false; // Domingo cerrado
+
+                            // 2. ✅ Bloquea los días de la semana que el SaaS configuró como cerrados (Ej: 5, 6, 7)
+                            if (_diasSemanaCerrados.contains(day.weekday)) {
+                              return false;
                             }
+
                             return true; // Día libre
                           },
                           // ☝️ FIN DE LA MAGIA ☝️

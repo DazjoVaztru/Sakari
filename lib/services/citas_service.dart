@@ -137,7 +137,9 @@ class CitasService {
     return "${horas.toString().padLeft(2, '0')}:$minutos";
   }
 
-  static Future<List<String>> obtenerDiasBloqueados(String token) async {
+  static Future<Map<String, dynamic>> obtenerDiasBloqueados(
+    String token,
+  ) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/dias-bloqueados'),
@@ -146,12 +148,20 @@ class CitasService {
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
         if (jsonResponse['success']) {
-          return List<String>.from(jsonResponse['data']);
+          // Extraemos ambas listas
+          return {
+            'fechas': List<String>.from(
+              jsonResponse['data']['fechas_bloqueadas'] ?? [],
+            ),
+            'dias_semana': List<int>.from(
+              jsonResponse['data']['dias_semana_cerrados'] ?? [],
+            ),
+          };
         }
       }
-      return [];
+      return {'fechas': [], 'dias_semana': []};
     } catch (e) {
-      return [];
+      return {'fechas': [], 'dias_semana': []};
     }
   }
 }
