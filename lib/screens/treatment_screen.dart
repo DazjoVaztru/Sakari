@@ -12,9 +12,9 @@ class TreatmentScreen extends StatefulWidget {
 }
 
 class _TreatmentScreenState extends State<TreatmentScreen> {
+  List<String> _diasBloqueados = [];
   List<TratamientoModel> listaTratamientos = [];
   List<Map<String, dynamic>> listaActivos = [];
-  List<String> _diasBloqueados = [];
   bool isLoading = true;
 
   // Ponemos el token aquí arriba para que TODA la pantalla lo pueda usar
