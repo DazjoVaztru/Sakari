@@ -136,4 +136,22 @@ class CitasService {
     }
     return "${horas.toString().padLeft(2, '0')}:$minutos";
   }
+
+  static Future<List<String>> obtenerDiasBloqueados(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/dias-bloqueados'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['success']) {
+          return List<String>.from(jsonResponse['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }

@@ -14,6 +14,7 @@ class TreatmentScreen extends StatefulWidget {
 class _TreatmentScreenState extends State<TreatmentScreen> {
   List<TratamientoModel> listaTratamientos = [];
   List<Map<String, dynamic>> listaActivos = [];
+  List<String> _diasBloqueados = [];
   bool isLoading = true;
 
   // Ponemos el token aquí arriba para que TODA la pantalla lo pueda usar
@@ -24,6 +25,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   void initState() {
     super.initState();
     _inicializarPantalla(); // <- Cambiamos esto
+    _cargarDiasBloqueados();
+  }
+
+  void _cargarDiasBloqueados() async {
+    final dias = await CitasService.obtenerDiasBloqueados(miToken);
+    if (mounted) {
+      setState(() {
+        _diasBloqueados = dias;
+      });
+    }
   }
 
   // NUEVA FUNCIÓN QUE LEE LA MEMORIA PRIMERO
