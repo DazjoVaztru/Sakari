@@ -40,16 +40,6 @@ class _MainDashboardState extends State<MainDashboard> {
   void initState() {
     super.initState();
     _inicializarPantalla();
-    _cargarDiasBloqueados();
-  }
-
-  void _cargarDiasBloqueados() async {
-    final dias = await CitasService.obtenerDiasBloqueados(miToken);
-    if (mounted) {
-      setState(() {
-        _diasBloqueados = dias;
-      });
-    }
   }
 
   Future<void> _inicializarPantalla() async {
@@ -62,6 +52,16 @@ class _MainDashboardState extends State<MainDashboard> {
       // Una vez que tenemos el token de la memoria, ahora sí cargamos la base de datos
       _cargarCitaDesdeBD();
       _cargarPromocion();
+      _cargarDiasBloqueados();
+    }
+  }
+
+  void _cargarDiasBloqueados() async {
+    final dias = await CitasService.obtenerDiasBloqueados(miToken);
+    if (mounted) {
+      setState(() {
+        _diasBloqueados = dias;
+      });
     }
   }
 

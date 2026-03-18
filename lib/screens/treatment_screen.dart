@@ -25,16 +25,6 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   void initState() {
     super.initState();
     _inicializarPantalla(); // <- Cambiamos esto
-    _cargarDiasBloqueados();
-  }
-
-  void _cargarDiasBloqueados() async {
-    final dias = await CitasService.obtenerDiasBloqueados(miToken);
-    if (mounted) {
-      setState(() {
-        _diasBloqueados = dias;
-      });
-    }
   }
 
   // NUEVA FUNCIÓN QUE LEE LA MEMORIA PRIMERO
@@ -47,6 +37,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
 
     if (miToken.isNotEmpty) {
       _cargarTratamientos();
+      _cargarDiasBloqueados();
     }
   }
 
@@ -62,6 +53,15 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
         listaTratamientos = tratamientos;
         listaActivos = activos;
         isLoading = false;
+      });
+    }
+  }
+
+  void _cargarDiasBloqueados() async {
+    final dias = await CitasService.obtenerDiasBloqueados(miToken);
+    if (mounted) {
+      setState(() {
+        _diasBloqueados = dias;
       });
     }
   }
