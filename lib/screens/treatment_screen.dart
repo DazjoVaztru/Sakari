@@ -62,9 +62,9 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
     final data = await CitasService.obtenerDiasBloqueados(miToken);
     if (mounted) {
       setState(() {
-        _diasBloqueados = data['fechas'];
-        _diasSemanaCerrados =
-            data['dias_semana']; // Guardamos los días de la semana
+        // 👇 AÑADIMOS List<String>.from y List<int>.from PARA EVITAR EL ERROR 👇
+        _diasBloqueados = List<String>.from(data['fechas'] ?? []);
+        _diasSemanaCerrados = List<int>.from(data['dias_semana'] ?? []);
       });
     }
   }
