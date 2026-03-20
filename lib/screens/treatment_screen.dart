@@ -382,12 +382,39 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   void _mostrarModalAgendar(int idServicio, String nombreServicio) {
     final BuildContext contextoPrincipal = context;
 
+    // 🔥 MAGIA: Función inteligente que busca el primer día disponible
+    DateTime buscarPrimerDiaLibre() {
+      DateTime diaPrueba = DateTime.now().add(
+        const Duration(days: 1),
+      ); // Empezamos desde mañana
+
+      for (int i = 0; i < 60; i++) {
+        // Buscamos un día libre en los próximos 2 meses
+        String fechaStr =
+            "${diaPrueba.year}-${diaPrueba.month.toString().padLeft(2, '0')}-${diaPrueba.day.toString().padLeft(2, '0')}";
+
+        // Si el día NO está bloqueado en fechas y NO es un día de la semana cerrado, ¡lo encontramos!
+        if (!_diasBloqueados.contains(fechaStr) &&
+            !_diasSemanaCerrados.contains(diaPrueba.weekday)) {
+          return diaPrueba;
+        }
+        diaPrueba = diaPrueba.add(
+          const Duration(days: 1),
+        ); // Si está cerrado, checamos el día siguiente
+      }
+      return DateTime.now().add(
+        const Duration(days: 1),
+      ); // Respaldo de emergencia
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext ctx) {
-        DateTime fechaTemp = DateTime.now().add(const Duration(days: 1));
+        // ✅ CORRECCIÓN: Le damos a Flutter un día de inicio que es 100% seguro que está abierto
+        DateTime fechaTemp = buscarPrimerDiaLibre();
+
         int pasoActual = 1;
         String? horaSeleccionada;
         bool isLoadingHorarios = false;
@@ -395,6 +422,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
         bool isCargandoBoton = false;
 
         return StatefulBuilder(
+          // ... EL RESTO DE TU CÓDIGO HACIA ABAJO SE QUEDA EXACTAMENTE IGUAL ...
           builder: (BuildContext modalContext, StateSetter setModalState) {
             Future<void> cargarHorarios(DateTime nuevaFecha) async {
               setModalState(() {
