@@ -87,22 +87,20 @@ class CitasService {
   // ========================================================
   // NUEVA FUNCIÓN PARA AGENDAR CONECTADA A LA API REAL
   // ========================================================
-  static Future<bool> agendarNuevaCita(
+  static Future<Map<String, dynamic>> agendarNuevaCita(
     String token,
     int idServicio,
     DateTime fecha,
-    String horaSeleccionada, // Ej: "10:30 AM"
+    String horaSeleccionada,
   ) async {
+    // ... (El código que te pasé en el paso anterior) ...
     try {
-      // Formatear la fecha a YYYY-MM-DD
       String fechaFormateada =
           "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
-
-      // Convertir "10:30 AM" a formato militar "10:30" o "14:30"
       String horaMilitar = _convertirHoraMilitar(horaSeleccionada);
 
       final response = await http.post(
-        Uri.parse('$baseUrl/agendar-cita'), // Apunta a tu ruta real
+        Uri.parse('$baseUrl/agendar-cita'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -115,11 +113,24 @@ class CitasService {
         }),
       );
 
-      print("Respuesta al agendar: ${response.statusCode} - ${response.body}");
-      return response.statusCode == 201;
+      final jsonResponse = jsonDecode(response.body);
+
+      // ✅ MAGIA: Aceptamos 200 y 201 como éxitos válidos
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'Cita agendada correctamente',
+        };
+      } else {
+        // 🔥 Si hay error (como el bloqueo de 1 al día), capturamos el mensaje real
+        return {
+          'success': false,
+          'message':
+              jsonResponse['message'] ?? 'Error desconocido del servidor',
+        };
+      }
     } catch (e) {
-      print("Error al agendar cita: $e");
-      return false;
+      return {'success': false, 'message': 'Error de conexión con el servidor'};
     }
   }
 
