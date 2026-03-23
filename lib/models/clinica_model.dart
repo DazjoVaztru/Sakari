@@ -20,7 +20,8 @@ class ClinicaModel {
   factory ClinicaModel.fromJson(Map<String, dynamic> json) {
     return ClinicaModel(
       nombre: json['nombre'] ?? 'SAKARI Dental',
-      direccion: json['direccion'] ?? 'Centro, Tehuacán, Puebla',
+      direccion:
+          json['direccion'] ?? json['domicilio'] ?? 'Centro, Tehuacán, Puebla',
       telefono: json['telefono'] ?? '+522381234567',
       email: json['email'] ?? 'contacto@sakari.com',
       horarioSemana:

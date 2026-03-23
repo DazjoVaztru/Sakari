@@ -19,15 +19,20 @@ class CitaModel {
 
   factory CitaModel.fromJson(Map<String, dynamic> json) {
     return CitaModel(
-      // 👇 Añade json['id_cita'] para que atrape el ID real de la base de datos
       id: json['id'] ?? json['id_cita'] ?? 0,
       fechaHoraInicio: DateTime.parse(json['fecha_hora_inicio']),
       estadoCita: json['estado_cita'] ?? 'pendiente',
       motivo: json['motivo'] ?? 'Consulta',
-      nombreDoctor: json['nombre_doctor'] ?? 'Dr. Asignado',
+      nombreDoctor:
+          json['nombre_doctor'] ??
+          (json['doctor'] != null && json['doctor']['usuario'] != null
+              ? "${json['doctor']['usuario']['nombre'] ?? ''} ${json['doctor']['usuario']['apellido_paterno'] ?? ''}"
+                    .trim()
+              : 'Dr. Asignado'),
       nombreServicio: json['nombre_servicio'] ?? 'Servicio Dental',
       haSidoReagendada:
-          json['ha_sido_reagendada'] == 1 || json['ha_sido_reagendada'] == true,
+          json['notas'] != null &&
+          json['notas'].toString().contains('⚠️ REAGENDADA POR PACIENTE'),
     );
   }
 }

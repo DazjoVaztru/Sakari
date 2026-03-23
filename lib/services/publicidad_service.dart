@@ -18,10 +18,17 @@ class PublicidadService {
         },
       );
       if (response.statusCode == 200) {
-        final data =
-            jsonDecode(response.body)['data']
-                as List; // Ajusta si tu JSON es diferente
-        return data.map((e) => PublicidadModel.fromJson(e)).toList();
+        final jsonData = jsonDecode(response.body);
+        final data = jsonData['data'] ?? jsonData; // Sacamos el jugo
+
+        // Si Laravel envía una lista, mostramos todas.
+        if (data is List) {
+          return data.map((e) => PublicidadModel.fromJson(e)).toList();
+        }
+        // Si Laravel envía solo 1 promoción (como actualmente), la metemos en una lista de 1 elemento para que el Carrusel no estalle.
+        else if (data is Map<String, dynamic>) {
+          return [PublicidadModel.fromJson(data)];
+        }
       }
       return [];
     } catch (e) {
