@@ -60,7 +60,7 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
 
       if (mounted) {
         setState(() {
-          listaTratamientos = tratamientosApi ?? [];
+          listaTratamientos = tratamientosApi;
           listaActivos = activosApi;
           isLoading = false;
         });
