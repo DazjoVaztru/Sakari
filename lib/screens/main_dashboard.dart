@@ -589,56 +589,42 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  void _accionConfirmar() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFF8E1E7),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            const Text("✅", style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 20),
-            const Text(
-              "¡Gracias por confirmar!",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF880E4F),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              "Lo esperamos el día ${fechaCita.day} a las ${fechaCita.hour}:${fechaCita.minute}0.",
-              style: const TextStyle(fontSize: 14, color: Color(0xFF880E4F)),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                estadoCita = "Confirmada";
-                colorEstado = Colors.green;
-              });
-              Navigator.pop(ctx);
-            },
-            child: const Text(
-              "Aceptar",
-              style: TextStyle(
-                color: Color(0xFF880E4F),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+  void _accionConfirmar() async {
+    if (citaActual == null) return;
+
+    // Mostramos un mensajito de carga
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Confirmando cita en el sistema..."),
+        duration: Duration(seconds: 1),
       ),
     );
+
+    // Le avisamos a Laravel
+    final resultado = await CitasService.confirmarCita(miToken, citaActual!.id);
+
+    if (mounted) {
+      if (resultado['success'] == true) {
+        // Solo si Laravel dice "OK", pintamos de verde
+        setState(() {
+          estadoCita = "Confirmada";
+          colorEstado = Colors.green;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("¡Cita confirmada exitosamente!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(resultado['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _accionReagendar() {

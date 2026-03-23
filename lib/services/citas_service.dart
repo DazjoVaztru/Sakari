@@ -83,6 +83,37 @@ class CitasService {
     }
   }
 
+  // Añade esto debajo de tu función reagendarCita
+  static Future<Map<String, dynamic>> confirmarCita(
+    String token,
+    int idCita,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          '$baseUrl/citas/$idCita/confirmar',
+        ), // Asegúrate de que esta ruta exista en tu api.php
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': 'Cita confirmada en el sistema'};
+      } else {
+        final jsonResponse = jsonDecode(response.body);
+        return {
+          'success': false,
+          'message': jsonResponse['message'] ?? 'Error al confirmar',
+        };
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión'};
+    }
+  }
+
   // Función para obtener los horarios disponibles de una fecha
   // Función para obtener los horarios REALES disponibles de una fecha
   static Future<List<String>> obtenerHorariosDisponibles(

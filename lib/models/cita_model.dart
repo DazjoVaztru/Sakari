@@ -19,13 +19,13 @@ class CitaModel {
 
   factory CitaModel.fromJson(Map<String, dynamic> json) {
     return CitaModel(
-      id: json['id'] ?? 0,
+      // 👇 Añade json['id_cita'] para que atrape el ID real de la base de datos
+      id: json['id'] ?? json['id_cita'] ?? 0,
       fechaHoraInicio: DateTime.parse(json['fecha_hora_inicio']),
       estadoCita: json['estado_cita'] ?? 'pendiente',
       motivo: json['motivo'] ?? 'Consulta',
       nombreDoctor: json['nombre_doctor'] ?? 'Dr. Asignado',
       nombreServicio: json['nombre_servicio'] ?? 'Servicio Dental',
-      // Dependiendo de cómo lo mande Laravel (1/0 o true/false)
       haSidoReagendada:
           json['ha_sido_reagendada'] == 1 || json['ha_sido_reagendada'] == true,
     );
