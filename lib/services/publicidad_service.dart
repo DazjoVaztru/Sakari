@@ -1,31 +1,31 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/publicidad_model.dart';
-// import 'dart:convert';
-// import 'package:http/http.dart' as http;
 
 class PublicidadService {
-  static const String baseUrl = 'http://10.0.2.2:4000/api';
+  static const String baseUrl =
+      'https://proyectosakaridentalconnect-production.up.railway.app/api';
 
-  static Future<PublicidadModel?> obtenerPromocionActiva() async {
+  static Future<List<PublicidadModel>> obtenerPromocionesActivas(
+    String token,
+  ) async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando tu equipo haga el endpoint) ===
-      final response = await http.get(Uri.parse('$baseUrl/publicidad/activa'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return PublicidadModel.fromJson(data);
-      }
-      return null;
-      */
-
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-
-      return PublicidadModel(
-        titulo: "Mes de la Ortodoncia",
-        descripcion:
-            "Inicia tu tratamiento con 30% de descuento en el pago inicial.",
+      final response = await http.get(
+        Uri.parse('$baseUrl/publicidad'), // Ajusta la ruta de tu API
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
       );
+      if (response.statusCode == 200) {
+        final data =
+            jsonDecode(response.body)['data']
+                as List; // Ajusta si tu JSON es diferente
+        return data.map((e) => PublicidadModel.fromJson(e)).toList();
+      }
+      return [];
     } catch (e) {
-      return null;
+      return [];
     }
   }
 }

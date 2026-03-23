@@ -1,55 +1,80 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/cita_model.dart';
+import '../models/clinica_model.dart';
 
 class CitasService {
   // URL real de Railway
   static const String baseUrl =
       'https://proyectosakaridentalconnect-production.up.railway.app/api';
 
-  static Future<CitaModel?> obtenerProximaCita(int idPaciente) async {
+  // --- 1. OBTENER PRÓXIMA CITA (REAL) ---
+  // Ahora pasamos el token para la seguridad
+  static Future<CitaModel?> obtenerProximaCita(String token) async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando tu equipo termine el endpoint) ===
-      final response = await http.get(Uri.parse('$baseUrl/citas/proxima/$idPaciente'));
+      // LLAMADA REAL AL SAAS
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/citas/proxima',
+        ), // Ajusta tu ruta. Asumimos que el backend sabe qué paciente es por el Token
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token', // ¡CRUCIAL ENVIAR EL TOKEN!
+        },
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return CitaModel.fromJson(data);
+        return CitaModel.fromJson(data['data'] ?? data);
       }
       return null;
-      */
-
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-
-      return CitaModel(
-        fechaHoraInicio: DateTime.parse("2026-03-20T13:50:00"),
-        estadoCita: "pendiente",
-        motivo: "Brackets",
-        nombreDoctor: "Dr. Marco Osorio",
-        nombreServicio: "Ortodoncia",
-      );
     } catch (e) {
+      print("Error al obtener cita: $e");
       return null;
     }
   }
 
-  // Función para reagendar la cita
-  static Future<bool> reagendarCita(int idCita, DateTime nuevaFecha) async {
+  // --- 2. REAGENDAR CITA (REAL) ---
+  static Future<Map<String, dynamic>> reagendarCita(
+    String token,
+    int idCita,
+    DateTime fecha,
+    String horaSeleccionada,
+  ) async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando tu equipo haga el endpoint PUT) ===
-      final response = await http.put(
-        Uri.parse('$baseUrl/citas/$idCita/reagendar'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'nueva_fecha': nuevaFecha.toIso8601String()}), 
-      );
-      return response.statusCode == 200;
-      */
+      String fechaFormateada =
+          "${fecha.year}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}";
+      String horaMilitar = _convertirHoraMilitar(horaSeleccionada);
 
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-      return true;
+      // Usamos POST (o PUT si tu API lo requiere así)
+      final response = await http.post(
+        Uri.parse('$baseUrl/citas/$idCita/reagendar'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'fecha': fechaFormateada, 'hora': horaMilitar}),
+      );
+
+      final jsonResponse = jsonDecode(response.body);
+
+      // Leemos los códigos de éxito reales
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': jsonResponse['message'] ?? 'Cita reagendada correctamente',
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              jsonResponse['message'] ?? 'Error desconocido del servidor',
+        };
+      }
     } catch (e) {
-      return false;
+      return {'success': false, 'message': 'Error de conexión con el servidor'};
     }
   }
 
@@ -173,6 +198,27 @@ class CitasService {
       return {'fechas': [], 'dias_semana': []};
     } catch (e) {
       return {'fechas': [], 'dias_semana': []};
+    }
+  }
+
+  static Future<ClinicaModel?> obtenerDatosClinica(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/clinica'), // Ajusta la ruta exacta de tu API
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return ClinicaModel.fromJson(
+          data['data'] ?? data,
+        ); // Ajusta según tu JSON
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }

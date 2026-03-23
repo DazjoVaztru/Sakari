@@ -29,13 +29,14 @@ class _MainDashboardState extends State<MainDashboard> {
   DateTime fechaCita = DateTime.now();
   String estadoCita = "Cargando...";
   Color colorEstado = Colors.grey;
-  PublicidadModel? promoActiva;
+  List<PublicidadModel> listaPromociones = [];
   bool isLoadingPromo = true;
   List<String> _diasBloqueados = [];
   List<int> _diasSemanaCerrados = [];
-
-  // Ponemos el token aquí para poder pasárselo a los servicios
   String miToken = "";
+  String nombrePaciente = "Cargando...";
+  String correoPaciente = "Cargando...";
+  String direccionClinica = 'Centro, Tehuacán, Puebla'; // Dirección por defecto
 
   @override
   void initState() {
@@ -47,13 +48,16 @@ class _MainDashboardState extends State<MainDashboard> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       miToken = prefs.getString('token') ?? "";
+      // Leemos el nombre y correo (Asegúrate de que tu login los guarde con estas llaves)
+      nombrePaciente = prefs.getString('nombre') ?? "Paciente";
+      correoPaciente = prefs.getString('email') ?? "paciente@sakary.com";
     });
 
     if (miToken.isNotEmpty) {
-      // Una vez que tenemos el token de la memoria, ahora sí cargamos la base de datos
       _cargarCitaDesdeBD();
-      _cargarPromocion();
+      _cargarPromociones(); // <-- Cambiaremos este nombre en el paso amarillo
       _cargarDiasBloqueados();
+      _cargarDatosClinica(); // <-- Nueva función para el mapa (Paso azul)
     }
   }
 
@@ -69,10 +73,8 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarCitaDesdeBD() async {
-    // Ahora enviamos el token real
-    final cita = await CitasService.obtenerProximaCita(
-      1,
-    ); // Mantenemos el simulador por ahora en citas_service
+    // Ahora enviamos el TOKEN en lugar de un ID quemado
+    final cita = await CitasService.obtenerProximaCita(miToken);
 
     if (mounted) {
       setState(() {
@@ -90,21 +92,27 @@ class _MainDashboardState extends State<MainDashboard> {
     }
   }
 
-  Future<void> _cargarPromocion() async {
-    final promo = await PublicidadService.obtenerPromocionActiva();
+  Future<void> _cargarPromociones() async {
+    final promos = await PublicidadService.obtenerPromocionesActivas(miToken);
     if (mounted) {
       setState(() {
-        promoActiva = promo;
+        listaPromociones = promos;
         isLoadingPromo = false;
       });
     }
   }
 
+  Future<void> _cargarDatosClinica() async {
+    final clinica = await CitasService.obtenerDatosClinica(miToken);
+    if (clinica != null && mounted) {
+      setState(() => direccionClinica = clinica.direccion);
+    }
+  }
+
   Future<void> _abrirGoogleMaps() async {
-    // Aquí ponemos la dirección de Tehuacán
-    const String direccion = 'Centro, Tehuacán, Puebla';
+    // Usamos la dirección dinámica obtenida del SaaS y el formato correcto de Google Maps
     final String urlCodificada = Uri.encodeFull(
-      'https://www.google.com/maps/search/?api=1&query=$direccion',
+      'https://www.google.com/maps/search/?api=1&query=$direccionClinica',
     );
     final Uri url = Uri.parse(urlCodificada);
 
@@ -130,18 +138,26 @@ class _MainDashboardState extends State<MainDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none, color: Colors.black),
             onPressed: () {},
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              backgroundColor: Color(0xFF0277BD),
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.white, size: 20),
+          GestureDetector(
+            onTap: () {
+              // Navegamos a la pantalla de configuración
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                backgroundColor: Color(0xFF0277BD),
+                radius: 18,
+                child: Icon(Icons.person, color: Colors.white, size: 20),
+              ),
             ),
           ),
         ],
@@ -150,14 +166,17 @@ class _MainDashboardState extends State<MainDashboard> {
         backgroundColor: Colors.white,
         child: Column(
           children: [
-            const UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF0277BD)),
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF0277BD)),
               accountName: Text(
-                "Josue",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                nombrePaciente,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              accountEmail: Text("paciente@sakary.com"),
-              currentAccountPicture: CircleAvatar(
+              accountEmail: Text(correoPaciente),
+              currentAccountPicture: const CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, size: 50, color: Color(0xFF0277BD)),
               ),
@@ -264,9 +283,9 @@ class _MainDashboardState extends State<MainDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Hola, Josue 👋",
-              style: TextStyle(
+            Text(
+              "Hola, ${nombrePaciente.split(' ')[0]} 👋", // split para mostrar solo el primer nombre
+              style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF014F7E),
@@ -279,6 +298,7 @@ class _MainDashboardState extends State<MainDashboard> {
             const SizedBox(height: 20),
 
             // --- BANNER DE PROMOCIONES (DINÁMICO) ---
+            // --- CARRUSEL DE PROMOCIONES (DINÁMICO) ---
             if (isLoadingPromo)
               Container(
                 width: double.infinity,
@@ -291,71 +311,75 @@ class _MainDashboardState extends State<MainDashboard> {
                   child: CircularProgressIndicator(color: Color(0xFF0277BD)),
                 ),
               )
-            else if (promoActiva != null)
-              Container(
-                width: double.infinity,
+            else if (listaPromociones.isNotEmpty)
+              SizedBox(
                 height: 140,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0277BD).withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -20,
-                      top: -20,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -20,
-                      left: 20,
-                      child: CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            promoActiva!.titulo,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            promoActiva!.descripcion,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: listaPromociones.length,
+                  itemBuilder: (context, index) {
+                    final promo = listaPromociones[index];
+                    return Container(
+                      width:
+                          MediaQuery.of(context).size.width *
+                          0.8, // Ocupa el 80% del ancho
+                      margin: const EdgeInsets.only(right: 15),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0277BD).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  promo.titulo,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  promo.descripcion,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -484,6 +508,7 @@ class _MainDashboardState extends State<MainDashboard> {
                     ),
                     const SizedBox(height: 20),
                     // ... (Tus botones de confirmar y reagendar se quedan exactamente igual)
+                    // Botones de Confirmar y Reagendar
                     Row(
                       children: [
                         Expanded(
@@ -498,9 +523,17 @@ class _MainDashboardState extends State<MainDashboard> {
                         Expanded(
                           child: _buildActionButton(
                             "Reagendar",
-                            Colors.grey,
+                            citaActual!.haSidoReagendada
+                                ? Colors.grey.shade400
+                                : Colors.grey,
                             false,
-                            onTap: _accionReagendar,
+                            onTap: () {
+                              if (citaActual!.haSidoReagendada) {
+                                _mostrarAlertaLimiteReagendos();
+                              } else {
+                                _accionReagendar();
+                              }
+                            },
                           ),
                         ),
                       ],
@@ -605,31 +638,43 @@ class _MainDashboardState extends State<MainDashboard> {
   void _accionReagendar() {
     final BuildContext contextoPrincipal = context;
 
+    // 🔥 BUSCADOR INTELIGENTE DEL PRIMER DÍA LIBRE 🔥
+    DateTime buscarPrimerDiaLibre() {
+      DateTime diaPrueba = DateTime.now().add(const Duration(days: 1));
+      for (int i = 0; i < 60; i++) {
+        String fechaStr =
+            "${diaPrueba.year}-${diaPrueba.month.toString().padLeft(2, '0')}-${diaPrueba.day.toString().padLeft(2, '0')}";
+        if (!_diasBloqueados.contains(fechaStr) &&
+            !_diasSemanaCerrados.contains(diaPrueba.weekday)) {
+          return diaPrueba;
+        }
+        diaPrueba = diaPrueba.add(const Duration(days: 1));
+      }
+      return DateTime.now().add(const Duration(days: 1));
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext ctx) {
-        DateTime fechaTemp = fechaCita;
+        // Inicializamos con el buscador mágico
+        DateTime fechaTemp = buscarPrimerDiaLibre();
         int pasoActual = 1;
         String? horaSeleccionada;
-
-        // Nuevas variables dinámicas para los horarios
         bool isLoadingHorarios = false;
         List<String> horariosDisponibles = [];
 
         return StatefulBuilder(
           builder: (BuildContext modalContext, StateSetter setModalState) {
-            // Función interna para pedir los horarios a la BD
             Future<void> cargarHorarios(DateTime nuevaFecha) async {
               setModalState(() {
                 fechaTemp = nuevaFecha;
                 pasoActual = 2;
                 isLoadingHorarios = true;
-                horaSeleccionada = null; // Reiniciamos la hora si cambia de día
+                horaSeleccionada = null;
               });
 
-              // Agregamos miToken como primer parámetro
               final horarios = await CitasService.obtenerHorariosDisponibles(
                 miToken,
                 nuevaFecha,
@@ -818,7 +863,9 @@ class _MainDashboardState extends State<MainDashboard> {
                             onPressed: horaSeleccionada == null
                                 ? null
                                 : () async {
-                                    Navigator.pop(ctx);
+                                    setModalState(
+                                      () => isLoadingHorarios = true,
+                                    ); // Bloqueamos visualmente
 
                                     ScaffoldMessenger.of(
                                       contextoPrincipal,
@@ -831,44 +878,51 @@ class _MainDashboardState extends State<MainDashboard> {
                                       ),
                                     );
 
-                                    // Aseguramos que tenemos una cita cargada para sacar su ID
-                                    // Asumiendo que tu CitaModel tiene una propiedad llamada 'id'
-                                    int idCita =
-                                        1; // Cambiar por 'citaActual?.id ?? 0' si tienes la propiedad 'id' en tu modelo
+                                    // 🔥 LLAMADA REAL AL BACKEND 🔥
+                                    final Map<String, dynamic> resultado =
+                                        await CitasService.reagendarCita(
+                                          miToken,
+                                          citaActual!.id,
+                                          fechaTemp,
+                                          horaSeleccionada!,
+                                        );
 
-                                    bool
-                                    exito = await CitasService.reagendarCita(
-                                      idCita, // <- Pasamos el ID real de la cita
-                                      fechaTemp,
-                                    );
+                                    if (mounted) {
+                                      Navigator.pop(ctx); // Cerramos el modal
 
-                                    if (exito && mounted) {
-                                      setState(() {
-                                        fechaCita = fechaTemp;
-                                        estadoCita = "Reagendada";
-                                        colorEstado = Colors.blue;
-                                      });
-                                      ScaffoldMessenger.of(
-                                        contextoPrincipal,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "¡Cita reagendada con éxito!",
+                                      if (resultado['success'] == true) {
+                                        ScaffoldMessenger.of(
+                                          contextoPrincipal,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              resultado['message']
+                                                      ?.toString() ??
+                                                  "¡Cita reagendada con éxito!",
+                                            ),
+                                            backgroundColor: Colors.green,
                                           ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    } else if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        contextoPrincipal,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Error al conectar con la clínica.",
+                                        );
+                                        // Recargamos los datos reales desde la BD
+                                        _cargarCitaDesdeBD();
+                                      } else {
+                                        // Mostramos el mensaje real de por qué falló (ej. Límite de reagendos en backend)
+                                        ScaffoldMessenger.of(
+                                          contextoPrincipal,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              resultado['message']
+                                                      ?.toString() ??
+                                                  "Error al reagendar.",
+                                            ),
+                                            backgroundColor: Colors.red,
+                                            duration: const Duration(
+                                              seconds: 4,
+                                            ),
                                           ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
+                                        );
+                                      }
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
@@ -887,6 +941,19 @@ class _MainDashboardState extends State<MainDashboard> {
           },
         );
       },
+    );
+  }
+
+  void _mostrarAlertaLimiteReagendos() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Por políticas de asistencia, solo puedes reagendar tu cita una vez.',
+        ),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 4),
+      ),
     );
   }
 
