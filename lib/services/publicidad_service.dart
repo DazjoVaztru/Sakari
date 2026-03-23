@@ -11,27 +11,29 @@ class PublicidadService {
   ) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/publicidad'), // Ajusta la ruta de tu API
+        Uri.parse('$baseUrl/publicidad'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        final data = jsonData['data'] ?? jsonData; // Sacamos el jugo
 
-        // Si Laravel envía una lista, mostramos todas.
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        // Extraemos los datos, vengan como vengan
+        var data =
+            jsonResponse['data'] ?? jsonResponse['publicidad'] ?? jsonResponse;
+
         if (data is List) {
           return data.map((e) => PublicidadModel.fromJson(e)).toList();
-        }
-        // Si Laravel envía solo 1 promoción (como actualmente), la metemos en una lista de 1 elemento para que el Carrusel no estalle.
-        else if (data is Map<String, dynamic>) {
+        } else if (data is Map<String, dynamic>) {
           return [PublicidadModel.fromJson(data)];
         }
       }
       return [];
     } catch (e) {
+      print("Error Publicidad: $e");
       return [];
     }
   }

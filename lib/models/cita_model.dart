@@ -18,18 +18,37 @@ class CitaModel {
   });
 
   factory CitaModel.fromJson(Map<String, dynamic> json) {
+    // Extracción segura del nombre del Doctor
+    String doctorName = 'Dr. Asignado';
+    if (json['doctor'] != null && json['doctor']['usuario'] != null) {
+      doctorName =
+          "Dr. ${json['doctor']['usuario']['nombre'] ?? ''} ${json['doctor']['usuario']['apellido_paterno'] ?? ''}"
+              .trim();
+    } else if (json['nombre_doctor'] != null) {
+      doctorName = json['nombre_doctor'];
+    }
+
+    // Extracción segura del Servicio/Tratamiento
+    String servicioName = json['motivo'] ?? 'Consulta';
+    if (json['detalles'] != null && json['detalles'].isNotEmpty) {
+      // Si tienes detalles de la cita, sacamos el servicio del primer detalle
+      var primerDetalle = json['detalles'][0];
+      if (primerDetalle['servicio'] != null) {
+        servicioName =
+            primerDetalle['servicio']['nombre_servicio'] ?? servicioName;
+      }
+    } else if (json['nombre_servicio'] != null) {
+      servicioName = json['nombre_servicio'];
+    }
+
     return CitaModel(
       id: json['id'] ?? json['id_cita'] ?? 0,
       fechaHoraInicio: DateTime.parse(json['fecha_hora_inicio']),
       estadoCita: json['estado_cita'] ?? 'pendiente',
       motivo: json['motivo'] ?? 'Consulta',
-      nombreDoctor:
-          json['nombre_doctor'] ??
-          (json['doctor'] != null && json['doctor']['usuario'] != null
-              ? "${json['doctor']['usuario']['nombre'] ?? ''} ${json['doctor']['usuario']['apellido_paterno'] ?? ''}"
-                    .trim()
-              : 'Dr. Asignado'),
-      nombreServicio: json['nombre_servicio'] ?? 'Servicio Dental',
+      nombreDoctor: doctorName,
+      nombreServicio: servicioName,
+      // Leemos la nota secreta que pusimos en Laravel
       haSidoReagendada:
           json['notas'] != null &&
           json['notas'].toString().contains('⚠️ REAGENDADA POR PACIENTE'),
