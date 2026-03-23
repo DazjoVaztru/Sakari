@@ -3,46 +3,65 @@ class ClinicaModel {
   final String direccion;
   final String telefono;
   final String email;
-  final String horarioSemana;
-  final String horarioFinSemana;
   final String imagenUrl;
+  final List<Map<String, dynamic>> horariosLista;
 
   ClinicaModel({
     required this.nombre,
     required this.direccion,
     required this.telefono,
     required this.email,
-    required this.horarioSemana,
-    required this.horarioFinSemana,
+    required this.horariosLista,
     required this.imagenUrl,
   });
 
   factory ClinicaModel.fromJson(Map<String, dynamic> json) {
+    // Convertimos los días de tu BD (0=Domingo, 1=Lunes, etc.) a texto legible
+    const nombresDias = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+    List<Map<String, dynamic>> horariosProcesados = [];
+
+    if (json['horarios'] != null) {
+      for (var h in json['horarios']) {
+        int numDia = h['dia_semana'] ?? 0;
+        bool estaActivo = h['activo'] == 1 || h['activo'] == true;
+
+        // Cortamos los segundos de la hora (ej: de "09:00:00" a "09:00")
+        String hrInicio = h['hora_inicio'] != null
+            ? h['hora_inicio'].toString().substring(0, 5)
+            : '';
+        String hrFin = h['hora_fin'] != null
+            ? h['hora_fin'].toString().substring(0, 5)
+            : '';
+
+        horariosProcesados.add({
+          'dia': nombresDias[numDia],
+          'horas': estaActivo ? '$hrInicio - $hrFin' : 'Cerrado',
+          'esCerrado': !estaActivo,
+        });
+      }
+    }
+
     return ClinicaModel(
-      // Buscamos 'nombre_comercial' que es como se llama la columna en tu base de datos de Laravel
       nombre:
           json['nombre_comercial'] ?? json['nombre'] ?? 'SAKARI Dental Connect',
-
-      // Buscamos la variable mágica 'direccion_completa' que tu Laravel arma perfectamente
       direccion:
-          json['direccion_completa'] ??
-          json['direccion'] ??
-          json['domicilio'] ??
-          'Centro, Tehuacán, Puebla',
-
-      // Buscamos 'numero_telefono' que es el nombre real en tu tabla de clínicas
-      telefono: json['numero_telefono'] ?? json['telefono'] ?? '+522381234567',
-
-      // Como tu tabla de clínicas en la BD no tiene email ni imagen todavía,
-      // dejamos estos valores por defecto para que no se rompa tu diseño.
-      email: json['email'] ?? 'contacto@sakari.com',
-      horarioSemana:
-          json['horario_semana'] ?? 'Lunes a Viernes: 09:00 AM - 07:00 PM',
-      horarioFinSemana:
-          json['horario_fin_semana'] ?? 'Sábados: 09:00 AM - 02:00 PM',
+          json['direccion_completa'] ?? json['direccion'] ?? 'Tehuacán, Puebla',
+      telefono: json['numero_telefono'] ?? json['telefono'] ?? '2381234567',
+      email: json['email'] ?? 'contacto@sakaridental.com',
+      // Busca la foto de tu DB, si está vacío, pone una clínica hermosa por defecto
       imagenUrl:
           json['imagen_url'] ??
-          'https://img.freepik.com/foto-gratis/silla-dentista-clinica-dental-moderna_155003-11681.jpg',
+          json['foto_clinica'] ??
+          'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=800&auto=format&fit=crop',
+      horariosLista: horariosProcesados,
     );
   }
 }

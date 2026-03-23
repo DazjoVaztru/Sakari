@@ -41,6 +41,7 @@ class _ClinicScreenState extends State<ClinicScreen> {
     final String direccion = clinica?.direccion ?? 'Centro, Tehuacán, Puebla';
 
     // Esta es la URL universal (Query) que entiende tanto Android como iOS para abrir su app de mapas
+    // Nota: Agregué el signo de dólar ($) que faltaba en tu variable Uri.encodeComponent para que funcione correctamente.
     final Uri url = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(direccion)}',
     );
@@ -112,41 +113,28 @@ class _ClinicScreenState extends State<ClinicScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- IMAGEN PRINCIPAL ---
-                  Container(
-                    width: double.infinity,
-                    height: 220,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: NetworkImage(clinica!.imagenUrl),
-                        fit: BoxFit.cover,
-                      ),
+                  // --- TÍTULO DE LA CLÍNICA (En lugar de la imagen que quitamos) ---
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: 25,
+                      left: 20,
+                      right: 20,
+                      bottom: 10,
                     ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withOpacity(0.6),
-                            Colors.transparent,
-                          ],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                        ),
-                      ),
-                      alignment: Alignment.bottomLeft,
-                      padding: const EdgeInsets.all(20),
+                    child: Center(
                       child: Text(
                         clinica!.nombre,
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
+                          color: Color(0xFF0277BD), // Azul fuerte para resaltar
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
                   // --- BOTONES DE ACCIÓN ---
                   Padding(
@@ -229,16 +217,61 @@ class _ClinicScreenState extends State<ClinicScreen> {
                           ),
                         ),
                         const SizedBox(height: 15),
-                        _buildInfoTile(
-                          Icons.access_time,
-                          "Lunes a Viernes",
-                          clinica!.horarioSemana,
-                        ),
-                        _buildInfoTile(
-                          Icons.weekend,
-                          "Fines de Semana",
-                          clinica!.horarioFinSemana,
-                        ),
+
+                        // 🔥 DIBUJA LOS 7 DÍAS AUTOMÁTICAMENTE EN 2 COLUMNAS 🔥
+                        // 🔥 DIBUJA LOS 7 DÍAS AUTOMÁTICAMENTE EN LISTA (NUEVO DISEÑO) 🔥
+                        if (clinica!.horariosLista.isNotEmpty)
+                          ...clinica!.horariosLista.map(
+                            (horario) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment
+                                    .spaceBetween, // Empuja el día a la izq y la hora a la der
+                                children: [
+                                  // Lado Izquierdo: Ícono y Día
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.access_time,
+                                        color: horario['esCerrado']
+                                            ? Colors.grey.shade400
+                                            : const Color(0xFF29B6F6),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        horario['dia'],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          color: horario['esCerrado']
+                                              ? Colors.grey.shade500
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Lado Derecho: Horas
+                                  Text(
+                                    horario['horas'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: horario['esCerrado']
+                                          ? Colors.redAccent
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (clinica!.horariosLista.isEmpty)
+                          const Text(
+                            "Horarios no configurados",
+                            style: TextStyle(color: Colors.grey),
+                          ),
 
                         const SizedBox(height: 40),
                       ],
@@ -250,7 +283,13 @@ class _ClinicScreenState extends State<ClinicScreen> {
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String title, String subtitle) {
+  // Solo agrégale el parámetro esCerrado al final
+  Widget _buildInfoTile(
+    IconData icon,
+    String title,
+    String subtitle, {
+    bool esCerrado = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: Row(
@@ -259,28 +298,42 @@ class _ClinicScreenState extends State<ClinicScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFFE1F5FE), // Fondo suave
+              // Si está cerrado, fondo gris clarito
+              color: esCerrado ? Colors.grey.shade200 : const Color(0xFFE1F5FE),
               borderRadius: BorderRadius.circular(10),
             ),
-            // <-- Color celeste en el icono para que combine
-            child: Icon(icon, color: const Color(0xFF29B6F6), size: 24),
+            // Si está cerrado, ícono gris oscuro
+            child: Icon(
+              icon,
+              color: esCerrado ? Colors.grey.shade600 : const Color(0xFF29B6F6),
+              size: 24,
+            ),
           ),
           const SizedBox(width: 15),
-          Expanded(
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              // mainAxisAlignment: MainAxisAlignment.start, // Deja que el texto suba
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: esCerrado ? Colors.grey.shade600 : Colors.black87,
                   ),
+                  // 🔥 NUEVO: Forzamos a que si el día es largo, se corte
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.grey, height: 1.4),
+                  // 🔥 NUEVO: Forzamos a que si la hora es larga, se corte
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: esCerrado ? Colors.redAccent : Colors.grey,
+                    height: 1.4,
+                    fontWeight: esCerrado ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
               ],
             ),
