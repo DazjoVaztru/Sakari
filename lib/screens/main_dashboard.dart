@@ -840,21 +840,32 @@ class _MainDashboardState extends State<MainDashboard> {
                         ),
                       )
                     else
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        // Dibujamos la lista de horarios directamente desde la Base de Datos
-                        children: horariosDisponibles.map((hora) {
-                          return _buildTimeOption(
-                            hora,
-                            horaSeleccionada,
-                            (val) =>
-                                setModalState(() => horaSeleccionada = val),
-                          );
-                        }).toList(),
+                      // --- HORARIOS DISPONIBLES (CON SCROLL) ---
+                      Expanded(
+                        // 1. Ocupa el espacio dinámicamente sin empujar los botones
+                        child: SingleChildScrollView(
+                          // 2. Permite hacer scroll hacia abajo
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: 20.0,
+                            ), // Un poco de aire al final
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              // Dibujamos la lista de horarios usando tu widget personalizado
+                              children: horariosDisponibles.map((hora) {
+                                return _buildTimeOption(
+                                  hora,
+                                  horaSeleccionada,
+                                  (val) => setModalState(
+                                    () => horaSeleccionada = val,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
                       ),
-
-                    const Spacer(),
                     Row(
                       children: [
                         Expanded(
