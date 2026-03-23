@@ -19,10 +19,22 @@ class ClinicaModel {
 
   factory ClinicaModel.fromJson(Map<String, dynamic> json) {
     return ClinicaModel(
-      nombre: json['nombre'] ?? 'SAKARI Dental',
+      // Buscamos 'nombre_comercial' que es como se llama la columna en tu base de datos de Laravel
+      nombre:
+          json['nombre_comercial'] ?? json['nombre'] ?? 'SAKARI Dental Connect',
+
+      // Buscamos la variable mágica 'direccion_completa' que tu Laravel arma perfectamente
       direccion:
-          json['direccion'] ?? json['domicilio'] ?? 'Centro, Tehuacán, Puebla',
-      telefono: json['telefono'] ?? '+522381234567',
+          json['direccion_completa'] ??
+          json['direccion'] ??
+          json['domicilio'] ??
+          'Centro, Tehuacán, Puebla',
+
+      // Buscamos 'numero_telefono' que es el nombre real en tu tabla de clínicas
+      telefono: json['numero_telefono'] ?? json['telefono'] ?? '+522381234567',
+
+      // Como tu tabla de clínicas en la BD no tiene email ni imagen todavía,
+      // dejamos estos valores por defecto para que no se rompa tu diseño.
       email: json['email'] ?? 'contacto@sakari.com',
       horarioSemana:
           json['horario_semana'] ?? 'Lunes a Viernes: 09:00 AM - 07:00 PM',

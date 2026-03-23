@@ -35,16 +35,18 @@ class _ClinicScreenState extends State<ClinicScreen> {
     }
   }
 
-  // Función para abrir Google Maps
+  // Función para abrir Google Maps REAL
   Future<void> _abrirMapa(BuildContext context) async {
-    // Usamos la dirección dinámica de la clínica
+    // Tomamos la dirección real que trajo Laravel
     final String direccion = clinica?.direccion ?? 'Centro, Tehuacán, Puebla';
-    final String urlCodificada = Uri.encodeFull(
-      'https://www.google.com/maps/search/?api=1&query=$direccion',
+
+    // Esta es la URL universal (Query) que entiende tanto Android como iOS para abrir su app de mapas
+    final Uri url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(direccion)}',
     );
-    final Uri url = Uri.parse(urlCodificada);
 
     try {
+      // mode: LaunchMode.externalApplication fuerza a que se abra en la App de Google Maps y no en el navegador de la app
       if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
         throw Exception('No se pudo abrir el mapa');
       }
@@ -215,7 +217,6 @@ class _ClinicScreenState extends State<ClinicScreen> {
                           "Teléfono",
                           clinica!.telefono,
                         ),
-                        _buildInfoTile(Icons.email, "Correo", clinica!.email),
 
                         const SizedBox(height: 25),
 
