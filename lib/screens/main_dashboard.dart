@@ -529,12 +529,28 @@ class _MainDashboardState extends State<MainDashboard> {
                         Expanded(
                           child: _buildActionButton(
                             "Reagendar",
-                            citaActual!.haSidoReagendada
+                            // Evaluamos si ya fue reagendada O si ya está confirmada
+                            (citaActual!.haSidoReagendada ||
+                                    citaActual!.estadoCita.toLowerCase() ==
+                                        'confirmada' ||
+                                    estadoCita == 'Confirmada')
                                 ? Colors.grey.shade400
                                 : Colors.grey,
                             false,
                             onTap: () {
-                              if (citaActual!.haSidoReagendada) {
+                              // Validaciones antes de abrir el modal
+                              if (citaActual!.estadoCita.toLowerCase() ==
+                                      'confirmada' ||
+                                  estadoCita == 'Confirmada') {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'No puedes reagendar una cita que ya confirmaste.',
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              } else if (citaActual!.haSidoReagendada) {
                                 _mostrarAlertaLimiteReagendos();
                               } else {
                                 _accionReagendar();
