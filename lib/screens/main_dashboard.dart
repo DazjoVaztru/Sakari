@@ -7,6 +7,7 @@ import 'payments_screen.dart';
 import 'settings_screen.dart';
 import '../models/cita_model.dart';
 import '../services/citas_service.dart';
+import '../services/clinica_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/publicidad_model.dart';
 import '../services/publicidad_service.dart';
@@ -55,9 +56,9 @@ class _MainDashboardState extends State<MainDashboard> {
 
     if (miToken.isNotEmpty) {
       _cargarCitaDesdeBD();
-      _cargarPromociones(); // <-- Cambiaremos este nombre en el paso amarillo
+      _cargarPromociones();
       _cargarDiasBloqueados();
-      _cargarDatosClinica(); // <-- Nueva función para el mapa (Paso azul)
+      _cargarDatosClinica();
     }
   }
 
@@ -103,9 +104,14 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarDatosClinica() async {
-    final clinica = await CitasService.obtenerDatosClinica(miToken);
-    if (clinica != null && mounted) {
-      setState(() => direccionClinica = clinica.direccion);
+    final clinica = await ClinicaService.obtenerDatosClinica(miToken);
+
+    if (mounted) {
+      setState(() {
+        // Si el servicio logra descargar la dirección, la pone.
+        // Si devuelve null, pone por defecto la dirección principal del SaaS.
+        direccionClinica = clinica?.direccion ?? 'Centro, Tehuacán, Puebla';
+      });
     }
   }
 

@@ -12,25 +12,30 @@ class CitasService {
   // Ahora pasamos el token para la seguridad
   static Future<CitaModel?> obtenerProximaCita(String token) async {
     try {
-      // LLAMADA REAL AL SAAS
+      // 1. Usamos tu endpoint real del SaaS
       final response = await http.get(
-        Uri.parse(
-          '$baseUrl/citas/proxima',
-        ), // Ajusta tu ruta. Asumimos que el backend sabe qué paciente es por el Token
+        Uri.parse('$baseUrl/citas-proximas'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': 'Bearer $token', // ¡CRUCIAL ENVIAR EL TOKEN!
+          'Authorization': 'Bearer $token',
         },
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return CitaModel.fromJson(data['data'] ?? data);
+        final jsonResponse = jsonDecode(response.body);
+
+        // 2. Extraemos la lista de citas
+        List<dynamic> listaCitas = jsonResponse['data'] ?? jsonResponse;
+
+        // 3. Tomamos la primera cita de la lista (que será la más próxima)
+        if (listaCitas.isNotEmpty) {
+          return CitaModel.fromJson(listaCitas.first);
+        }
       }
       return null;
     } catch (e) {
-      print("Error al obtener cita: $e");
+      print("Error al obtener la cita: $e");
       return null;
     }
   }

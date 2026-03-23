@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/clinica_model.dart';
 import '../services/clinica_service.dart';
 
@@ -13,6 +14,7 @@ class ClinicScreen extends StatefulWidget {
 class _ClinicScreenState extends State<ClinicScreen> {
   ClinicaModel? clinica;
   bool isLoading = true;
+  String miToken = "";
 
   @override
   void initState() {
@@ -21,7 +23,10 @@ class _ClinicScreenState extends State<ClinicScreen> {
   }
 
   Future<void> _cargarDatosClinica() async {
-    final datos = await ClinicaService.obtenerDatosClinica();
+    final prefs = await SharedPreferences.getInstance();
+    miToken = prefs.getString('token') ?? "";
+
+    final datos = await ClinicaService.obtenerDatosClinica(miToken);
     if (mounted) {
       setState(() {
         clinica = datos;
@@ -32,8 +37,8 @@ class _ClinicScreenState extends State<ClinicScreen> {
 
   // Función para abrir Google Maps
   Future<void> _abrirMapa(BuildContext context) async {
-    // Aquí ponemos la dirección de Tehuacán
-    const String direccion = 'Centro, Tehuacán, Puebla';
+    // Usamos la dirección dinámica de la clínica
+    final String direccion = clinica?.direccion ?? 'Centro, Tehuacán, Puebla';
     final String urlCodificada = Uri.encodeFull(
       'https://www.google.com/maps/search/?api=1&query=$direccion',
     );

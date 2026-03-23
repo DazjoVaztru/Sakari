@@ -36,33 +36,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
+    // Llamada real al servicio
     final resultado = await AuthService.login(email, password);
 
     if (resultado['success'] == true) {
       String tokenDefinitivo =
-          resultado['access_token'] ??
-          resultado['token'] ??
-          resultado['data']?['access_token'] ??
-          resultado['data']?['token'] ??
-          "";
+          resultado['access_token'] ?? resultado['token'] ?? "";
 
-      if (tokenDefinitivo.isEmpty) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Error interno: No se pudo extraer el token."),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
+      // Instanciamos SharedPreferences
       final prefs = await SharedPreferences.getInstance();
+
+      // 1. Guardamos el Token para mantener la sesión
       await prefs.setString('token', tokenDefinitivo);
 
+      // 🔴 2. GUARDAMOS EL NOMBRE Y CORREO REALES DEL PACIENTE 🔴
+      // Accedemos al objeto 'user' que devuelve tu backend de Laravel
+      var usuarioData = resultado['user'];
+
+      if (usuarioData != null) {
+        // Tu API en Laravel devuelve 'nombre_completo'
+        await prefs.setString(
+          'nombre',
+          usuarioData['nombre_completo'] ?? 'Paciente',
+        );
+        await prefs.setString(
+          'email',
+          usuarioData['email'] ?? 'correo@sakary.com',
+        );
+      } else {
+        // Valores por defecto por si falla la estructura del JSON
+        await prefs.setString('nombre', 'Paciente');
+        await prefs.setString('email', 'correo@sakary.com');
+      }
+
       if (mounted) {
+        // Redirigimos al Dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainDashboard()),
@@ -70,16 +78,21 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(resultado['message'] ?? "Error al iniciar sesión"),
+            content: Text(resultado['message'] ?? "Error de inicio de sesión"),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
+
+  // ... (El resto de tu código de UI en el método build se queda exactamente igual) ...
 
   @override
   Widget build(BuildContext context) {

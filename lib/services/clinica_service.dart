@@ -1,33 +1,33 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/clinica_model.dart';
 
 class ClinicaService {
-  static const String baseUrl = 'http://10.0.2.2:4000/api';
+  static const String baseUrl =
+      'https://proyectosakaridentalconnect-production.up.railway.app/api';
 
-  static Future<ClinicaModel?> obtenerDatosClinica() async {
+  static Future<ClinicaModel?> obtenerDatosClinica(String token) async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando el equipo haga el endpoint GET) ===
-      final response = await http.get(Uri.parse('$baseUrl/clinica/info'));
+      final response = await http.get(
+        // ¡CAMBIO CLAVE AQUÍ! Apuntamos al endpoint correcto
+        Uri.parse('$baseUrl/clinicas-doctores'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return ClinicaModel.fromJson(data);
+        // Extraemos los datos de la clínica (ajustado a la estructura de Laravel)
+        var clinicaData =
+            data['clinica'] ??
+            (data['data'] != null && data['data'].isNotEmpty
+                ? data['data'][0]
+                : data);
+        return ClinicaModel.fromJson(clinicaData);
       }
       return null;
-      */
-
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Retornamos los datos quemados para simular la BD
-      return ClinicaModel(
-        nombre: "SAKARI Dental Connect",
-        direccion: "Calle 1 Sur #123, Centro, Tehuacán, Puebla",
-        telefono: "+522381234567",
-        email: "hola@sakari.mx",
-        horarioSemana: "Lunes a Viernes: 09:00 AM - 07:00 PM",
-        horarioFinSemana: "Sábados: 09:00 AM - 02:00 PM (Domingos cerrado)",
-        imagenUrl:
-            "https://img.freepik.com/foto-gratis/silla-dentista-clinica-dental-moderna_155003-11681.jpg",
-      );
     } catch (e) {
       return null;
     }

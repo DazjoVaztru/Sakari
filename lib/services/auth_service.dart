@@ -39,8 +39,9 @@ class AuthService {
         return {
           'success': true,
           'message': 'Bienvenido',
-          // Le decimos que busque exactamente "access_token" en la respuesta de Laravel
-          'token': jsonResponse['access_token'],
+          'access_token': jsonResponse['access_token'],
+          'data': jsonResponse['data'],
+          'user': jsonResponse['user'],
         };
       } else {
         return {
