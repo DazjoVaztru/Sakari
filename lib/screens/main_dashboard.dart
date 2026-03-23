@@ -145,10 +145,6 @@ class _MainDashboardState extends State<MainDashboard> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.black),
-            onPressed: () {},
-          ),
           GestureDetector(
             onTap: () {
               // Navegamos a la pantalla de configuración
@@ -305,10 +301,11 @@ class _MainDashboardState extends State<MainDashboard> {
 
             // --- BANNER DE PROMOCIONES (DINÁMICO) ---
             // --- CARRUSEL DE PROMOCIONES (DINÁMICO) ---
+            // --- CARRUSEL DE PROMOCIONES (DINÁMICO) ---
             if (isLoadingPromo)
               Container(
                 width: double.infinity,
-                height: 140,
+                height: 220, // 👈 CAMBIO 1: Altura aumentada a 220
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(20),
@@ -319,17 +316,18 @@ class _MainDashboardState extends State<MainDashboard> {
               )
             else if (listaPromociones.isNotEmpty)
               SizedBox(
-                height: 140,
+                height: 220, // 👈 CAMBIO 2: Altura aumentada a 220
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: listaPromociones.length,
                   itemBuilder: (context, index) {
                     final promo = listaPromociones[index];
                     return Container(
-                      width:
-                          MediaQuery.of(context).size.width *
-                          0.8, // Ocupa el 80% del ancho
-                      margin: const EdgeInsets.only(right: 15),
+                      // Restamos 40 (20 de cada lado) para que quede exactamente alineado con la tarjeta de abajo
+                      width: MediaQuery.of(context).size.width - 40,
+                      margin: const EdgeInsets.only(
+                        right: 20,
+                      ), // Un margen para separar si hay más de 1 promo
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
@@ -351,12 +349,15 @@ class _MainDashboardState extends State<MainDashboard> {
                             right: -20,
                             top: -20,
                             child: CircleAvatar(
-                              radius: 50,
+                              radius:
+                                  80, // 👈 Se hizo más grande el círculo decorativo para llenar espacio
                               backgroundColor: Colors.white.withOpacity(0.1),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(20.0),
+                            padding: const EdgeInsets.all(
+                              25.0,
+                            ), // 👈 Más espacio interior
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -365,18 +366,20 @@ class _MainDashboardState extends State<MainDashboard> {
                                   promo.titulo,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
+                                    fontSize:
+                                        22, // 👈 Título un poco más grande
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 5),
+                                const SizedBox(height: 15),
                                 Text(
                                   promo.descripcion,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize:
+                                        15, // 👈 Descripción un poco más grande
                                   ),
-                                  maxLines: 2,
+                                  maxLines: 3, // 👈 Permitir hasta 3 líneas
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
@@ -388,6 +391,9 @@ class _MainDashboardState extends State<MainDashboard> {
                   },
                 ),
               ),
+
+            // 👇 CAMBIO 3: EL ESPACIO DE RESPIRACIÓN ANTES DEL SIGUIENTE TÍTULO 👇
+            const SizedBox(height: 35),
 
             // --- TARJETA DE CITA (DINÁMICA) ---
             const Text(
@@ -401,6 +407,7 @@ class _MainDashboardState extends State<MainDashboard> {
             const SizedBox(height: 10),
 
             // Si está cargando, mostramos el circulito azul
+            // --- TARJETA DE CITA ---
             if (isLoadingCita)
               const Center(
                 child: Padding(
@@ -408,23 +415,45 @@ class _MainDashboardState extends State<MainDashboard> {
                   child: CircularProgressIndicator(color: Color(0xFF0277BD)),
                 ),
               )
-            // Si cargó pero no hay citas en la BD
             else if (citaActual == null)
+              // 👇 AQUÍ PINTAMOS QUE NO HAY CITA 👇
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  "No tienes citas próximas agendadas.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                child: const Column(
+                  children: [
+                    Icon(Icons.event_busy, size: 50, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text(
+                      "No tienes citas próximas",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      "Comunícate con la clínica para agendar tu próxima visita.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
               )
-            // Si cargó y SI hay cita, mostramos la tarjeta
             else
+              // 👇 AQUÍ EMPIEZA TU NUEVO DISEÑO DE LA TARJETA BLANCA 👇
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -441,79 +470,126 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
                 child: Column(
                   children: [
+                    // --- FILA 1: FECHA Y ETIQUETA DE ESTADO ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Bloque de la fecha (Izquierda)
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE1F5FE),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_month,
+                                color: Color(0xFF0277BD),
+                                size: 30,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        // 👇 Bloque de la Etiqueta de Estado (Derecha) 👇
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: estadoCita.toLowerCase() == 'confirmada'
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: estadoCita.toLowerCase() == 'confirmada'
+                                  ? Colors.green
+                                  : Colors.orange,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            estadoCita.toUpperCase(),
+                            style: TextStyle(
+                              color: estadoCita.toLowerCase() == 'confirmada'
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade700,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      child: Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                    ),
+
+                    // --- FILA 2: EL TRATAMIENTO (EN LUGAR DEL DOCTOR) ---
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE1F5FE),
-                            borderRadius: BorderRadius.circular(15),
+                            color: Colors.blueGrey.shade50,
+                            shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.calendar_month,
+                            Icons.medical_information,
                             color: Color(0xFF0277BD),
-                            size: 30,
+                            size: 20,
                           ),
                         ),
                         const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Tratamiento a realizar:",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
-                            ),
-                            Text(
-                              "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Usamos los datos reales del modelo
-                            Text(
-                              citaActual!.nombreDoctor,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
+                              Text(
+                                citaActual!.nombreServicio,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              citaActual!.nombreServicio,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Chip(
-                          label: Text(
-                            estadoCita.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            ],
                           ),
-                          backgroundColor: colorEstado,
-                          padding: EdgeInsets.zero,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    // ... (Tus botones de confirmar y reagendar se quedan exactamente igual)
+
+                    const SizedBox(height: 25),
+
                     // Botones de Confirmar y Reagendar
                     Row(
                       children: [
@@ -565,40 +641,6 @@ class _MainDashboardState extends State<MainDashboard> {
               ),
 
             const SizedBox(height: 25),
-
-            // Accesos Rápidos
-            const Text(
-              "¿Qué necesitas hoy?",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildQuickActionItem(
-                  icon: Icons.cleaning_services,
-                  label: "Higiene",
-                  onTap: () => _mostrarRecomendacionesHigiene(context),
-                ),
-                _buildQuickActionItem(
-                  icon: Icons.location_on,
-                  label: "Ubicación",
-                  onTap: _abrirGoogleMaps, // Conectamos la función aquí
-                ),
-                _buildQuickActionItem(
-                  icon: Icons.healing,
-                  label: "Cuidados",
-                  isEnabled: tratamientoRealizado,
-                  onTap: () => _mostrarCuidadosPostTratamiento(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
           ],
         ),
       ),
