@@ -638,10 +638,48 @@ class _MainDashboardState extends State<MainDashboard> {
                     ),
                   ],
                 ),
-              ),
+              ), // <-- Cierre del Container de la Tarjeta de Cita
 
-            const SizedBox(height: 25),
-          ],
+            const SizedBox(height: 35),
+
+            // --- ACCIONES RÁPIDAS (HASTA ABAJO) ---
+            const Text(
+              "Acciones Rápidas",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment
+                  .spaceAround, // Separa los botones equitativamente
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildQuickActionItem(
+                  icon: Icons.clean_hands, // Ícono de lavado/higiene
+                  label: "Higiene",
+                  onTap: () => _mostrarRecomendacionesHigiene(context),
+                ),
+                _buildQuickActionItem(
+                  icon: Icons.health_and_safety, // Ícono de escudo médico
+                  label: "Cuidados",
+                  onTap: () => _mostrarCuidadosPostTratamiento(context),
+                ),
+                _buildQuickActionItem(
+                  icon: Icons.map, // Ícono de mapa
+                  label: "Ubicación",
+                  onTap: _abrirGoogleMaps,
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 40,
+            ), // Un buen espacio de respiración al final de la pantalla
+          ], // <-- Cierre del Column principal
         ),
       ),
     );
