@@ -113,29 +113,75 @@ class _ClinicScreenState extends State<ClinicScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- TÍTULO DE LA CLÍNICA (En lugar de la imagen que quitamos) ---
-                  Padding(
+                  // --- NUEVO ENCABEZADO ESTILO PERFIL ---
+                  Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.only(
-                      top: 25,
+                      top: 10,
+                      bottom: 30,
                       left: 20,
                       right: 20,
-                      bottom: 10,
                     ),
-                    child: Center(
-                      child: Text(
-                        clinica!.nombre,
-                        style: const TextStyle(
-                          color: Color(0xFF0277BD), // Azul fuerte para resaltar
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
+                    decoration: const BoxDecoration(
+                      // Degradado que empieza con el color exacto de tu AppBar para que se vea como una sola pieza
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF29B6F6), Color(0xFF0277BD)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(40),
+                        bottomRight: Radius.circular(40),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Círculo decorativo blanco
+                        Container(
+                          width: 85,
+                          height: 85,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.local_hospital_rounded, // Ícono médico
+                            color: Color(0xFF0277BD),
+                            size: 45,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        // Nombre de la clínica
+                        Text(
+                          clinica!.nombre,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        // Subtítulo sutil
+                        Text(
+                          "Atención Dental Especializada",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
-                  const SizedBox(height: 10),
-
+                  const SizedBox(height: 25), // Espacio antes de los botones
                   // --- BOTONES DE ACCIÓN ---
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -218,53 +264,83 @@ class _ClinicScreenState extends State<ClinicScreen> {
                         ),
                         const SizedBox(height: 15),
 
-                        // 🔥 DIBUJA LOS 7 DÍAS AUTOMÁTICAMENTE EN 2 COLUMNAS 🔥
-                        // 🔥 DIBUJA LOS 7 DÍAS AUTOMÁTICAMENTE EN LISTA (NUEVO DISEÑO) 🔥
+                        // 🔥 DIBUJA LOS 7 DÍAS EN UNA TARJETA ESTILIZADA 🔥
                         if (clinica!.horariosLista.isNotEmpty)
-                          ...clinica!.horariosLista.map(
-                            (horario) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment
-                                    .spaceBetween, // Empuja el día a la izq y la hora a la der
-                                children: [
-                                  // Lado Izquierdo: Ícono y Día
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        color: horario['esCerrado']
-                                            ? Colors.grey.shade400
-                                            : const Color(0xFF29B6F6),
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        horario['dia'],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                          color: horario['esCerrado']
-                                              ? Colors.grey.shade500
-                                              : Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFF8FAFC,
+                              ), // Fondo gris/azulado muy tenue
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.grey.shade200,
+                              ), // Borde sutil
+                            ),
+                            child: Column(
+                              // Usamos asMap().entries para saber qué número de fila es y poner el separador
+                              children: clinica!.horariosLista.asMap().entries.map((
+                                entry,
+                              ) {
+                                int index = entry.key;
+                                var horario = entry.value;
 
-                                  // Lado Derecho: Horas
-                                  Text(
-                                    horario['horas'],
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: horario['esCerrado']
-                                          ? Colors.redAccent
-                                          : Colors.grey.shade700,
+                                return Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Lado Izquierdo: Ícono y Día
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.access_time,
+                                              color: horario['esCerrado']
+                                                  ? Colors.grey.shade400
+                                                  : const Color(0xFF29B6F6),
+                                              size:
+                                                  18, // Ícono un poco más sutil
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              horario['dia'],
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: horario['esCerrado']
+                                                    ? Colors.grey.shade500
+                                                    : Colors.black87,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        // Lado Derecho: Horas
+                                        Text(
+                                          horario['horas'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: horario['esCerrado']
+                                                ? Colors.redAccent
+                                                : Colors.grey.shade700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
+
+                                    // Agregamos una línea divisoria EXCEPTO en el último día
+                                    if (index <
+                                        clinica!.horariosLista.length - 1)
+                                      const Divider(
+                                        height: 24,
+                                        color: Color(0xFFEEEEEE),
+                                        thickness: 1,
+                                      ),
+                                  ],
+                                );
+                              }).toList(),
                             ),
                           ),
                         if (clinica!.horariosLista.isEmpty)
