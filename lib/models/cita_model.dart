@@ -6,6 +6,8 @@ class CitaModel {
   final String nombreDoctor;
   final String nombreServicio;
   final bool haSidoReagendada;
+  final String tipsHigiene;
+  final String cuidados;
 
   CitaModel({
     required this.id,
@@ -15,6 +17,8 @@ class CitaModel {
     required this.nombreDoctor,
     required this.nombreServicio,
     this.haSidoReagendada = false,
+    this.tipsHigiene = "",
+    this.cuidados = "",
   });
 
   factory CitaModel.fromJson(Map<String, dynamic> json) {
@@ -31,7 +35,6 @@ class CitaModel {
     // Extracción segura del Servicio/Tratamiento
     String servicioName = json['motivo'] ?? 'Consulta';
     if (json['detalles'] != null && json['detalles'].isNotEmpty) {
-      // Si tienes detalles de la cita, sacamos el servicio del primer detalle
       var primerDetalle = json['detalles'][0];
       if (primerDetalle['servicio'] != null) {
         servicioName =
@@ -48,10 +51,15 @@ class CitaModel {
       motivo: json['motivo'] ?? 'Consulta',
       nombreDoctor: doctorName,
       nombreServicio: servicioName,
-      // Leemos la nota secreta que pusimos en Laravel
       haSidoReagendada:
           json['notas'] != null &&
           json['notas'].toString().contains('⚠️ REAGENDADA POR PACIENTE'),
+      tipsHigiene:
+          json['tips_pdf'] ??
+          json['tips_higiene'] ??
+          json['recomendaciones_higiene'] ??
+          "",
+      cuidados: json['cuidados_post_tratamiento'] ?? json['cuidados'] ?? "",
     );
   }
 }

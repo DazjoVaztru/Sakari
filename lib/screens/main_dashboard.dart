@@ -1102,49 +1102,88 @@ class _MainDashboardState extends State<MainDashboard> {
     return meses[mes - 1];
   }
 
-  void _mostrarRecomendacionesHigiene(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          "🦷 Tips de Higiene",
-          style: TextStyle(color: Color(0xFF0277BD)),
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("• Cepíllate 3 veces al día."),
-            SizedBox(height: 8),
-            Text("• Usa hilo dental."),
-            SizedBox(height: 8),
-            Text("• Cambia cepillo cada 3 meses."),
+  void _mostrarRecomendacionesHigiene(BuildContext context) async {
+    // Verificamos si la base de datos nos mandó un link de PDF válido
+    if (citaActual != null &&
+        citaActual!.tipsHigiene.isNotEmpty &&
+        citaActual!.tipsHigiene.startsWith('http')) {
+      final Uri urlPdf = Uri.parse(citaActual!.tipsHigiene);
+
+      try {
+        if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {
+          throw Exception('No se pudo abrir el PDF');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ocurrió un error al intentar abrir el documento."),
+            ),
+          );
+        }
+      }
+    } else {
+      // Si no hay PDF, mostramos el texto por defecto en un recuadro
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text(
+            "🦷 Tips de Higiene",
+            style: TextStyle(color: Color(0xFF0277BD)),
+          ),
+          content: const Text(
+            "• Cepíllate 3 veces al día.\n• Usa hilo dental.\n• Cambia tu cepillo cada 3 meses.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Entendido"),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Entendido"),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
-  void _mostrarCuidadosPostTratamiento(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("🩺 Cuidados", style: TextStyle(color: Colors.teal)),
-        content: const Text("No ingerir alimentos sólidos por 4 horas."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Aceptar"),
+  void _mostrarCuidadosPostTratamiento(BuildContext context) async {
+    // Verificamos si la base de datos nos mandó un link de PDF válido
+    if (citaActual != null &&
+        citaActual!.cuidados.isNotEmpty &&
+        citaActual!.cuidados.startsWith('http')) {
+      final Uri urlPdf = Uri.parse(citaActual!.cuidados);
+
+      try {
+        if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {
+          throw Exception('No se pudo abrir el PDF');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Ocurrió un error al intentar abrir el documento."),
+            ),
+          );
+        }
+      }
+    } else {
+      // Si no hay PDF, mostramos el texto por defecto
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text(
+            "🩺 Cuidados",
+            style: TextStyle(color: Colors.teal),
           ),
-        ],
-      ),
-    );
+          content: const Text("No ingerir alimentos sólidos por 4 horas."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Aceptar"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Widget _buildQuickActionItem({
