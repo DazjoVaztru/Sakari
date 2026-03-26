@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// IMPORTANTE: Asegúrate de importar la ruta correcta donde tienes tus servicios
 import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,28 +10,30 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
-  bool _isLoading = true; // Iniciamos cargando
+  bool _isLoading = true;
 
-  // Dejamos los controladores vacíos inicialmente
+  // Controladores de campos NO editables
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  final TextEditingController _calleController = TextEditingController();
-  final TextEditingController _coloniaController = TextEditingController();
-  final TextEditingController _ciudadController = TextEditingController();
+  // NUEVO: Un solo controlador para la dirección completa
+  final TextEditingController _direccionController = TextEditingController();
 
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
 
+  // Variable temporal para guardar la URL de la foto (cuando la traigamos de la base de datos)
+  String? _fotoPerfilUrl;
+
   @override
   void initState() {
     super.initState();
-    _cargarDatosPaciente(); // Llamamos a la función al iniciar la pantalla
+    _cargarDatosPaciente();
   }
 
-  // --- FUNCIÓN PARA CARGAR LOS DATOS REALES ---
+  // --- CARGAR DATOS REALES ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -42,38 +43,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _nameController.text = paciente['nombre_completo'] ?? '';
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
-        _calleController.text = paciente['calle'] ?? '';
-        _coloniaController.text = paciente['colonia'] ?? '';
-        _ciudadController.text = paciente['ciudad'] ?? '';
+
+        // Asumiendo que ahora tu backend envía todo junto en 'direccion'
+        // Si tu backend envía la dirección guardada en el campo 'calle', cámbialo aquí.
+        _direccionController.text =
+            paciente['direccion'] ?? paciente['calle'] ?? '';
+
+        // Guardamos la URL de la foto si tu SaaS ya la envía
+        _fotoPerfilUrl = paciente['foto_perfil'];
+
         _isLoading = false;
       });
     } else {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar datos: ${response['message']}'),
-          ),
+          SnackBar(content: Text('Error al cargar: ${response['message']}')),
         );
       }
     }
   }
 
-  // --- FUNCIÓN 1: Guardar Datos ---
+  // --- GUARDAR DATOS PERSONALES ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
+    // Ahora enviamos un solo campo para la dirección
     final data = {
-      'calle': _calleController.text,
-      'colonia': _coloniaController.text,
-      'ciudad': _ciudadController.text,
+      'direccion': _direccionController
+          .text, // Asegúrate de que Laravel reciba este mismo nombre
     };
 
     final response = await AuthService.updateProfile(data);
 
     setState(() {
       _isLoading = false;
-      _isEditing = false; // Bloqueamos los campos al terminar
+      _isEditing = false;
     });
 
     if (mounted) {
@@ -83,7 +88,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- FUNCIÓN 2: Cambiar Contraseña ---
+  // --- FUNCION PARA CAMBIAR FOTO (A FUTURO) ---
+  void _cambiarFotoPerfil() {
+    // Aquí pondremos la lógica del ImagePicker para subir la foto a Laravel
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Próximamente: Abrir galería para cambiar foto 📷'),
+      ),
+    );
+  }
+
+  // --- CAMBIAR CONTRASEÑA ---
   Future<void> _cambiarPassword() async {
     if (_currentPasswordController.text.isEmpty ||
         _newPasswordController.text.isEmpty) {
@@ -114,7 +129,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // DIÁLOGO PARA PEDIR LAS CONTRASEÑAS
   void _mostrarDialogoPassword() {
     showDialog(
       context: context,
@@ -147,8 +161,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Cierra el diálogo
-                _cambiarPassword(); // Ejecuta la función
+                Navigator.pop(context);
+                _cambiarPassword();
               },
               child: const Text('Actualizar'),
             ),
@@ -176,7 +190,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           IconButton(
-            // El icono cambia dependiendo de si estamos editando o no
             icon: Icon(
               _isEditing ? Icons.save : Icons.edit,
               color: Colors.white,
@@ -199,17 +212,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 10),
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Color(0xFF0277BD),
-                    child: Icon(Icons.person, size: 60, color: Colors.white),
-                  ),
-                  const SizedBox(height: 20),
 
-                  // --- SECCIÓN BLOQUEADA ---
+                  // --- DISEÑO DE FOTO DE PERFIL CON BOTÓN ---
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 55,
+                        backgroundColor: const Color(0xFF0277BD),
+                        backgroundImage:
+                            _fotoPerfilUrl != null && _fotoPerfilUrl!.isNotEmpty
+                            ? NetworkImage(
+                                _fotoPerfilUrl!,
+                              ) // Muestra la foto de la BD
+                            : null,
+                        child: _fotoPerfilUrl == null || _fotoPerfilUrl!.isEmpty
+                            ? const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.white,
+                              ) // Icono por defecto
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _cambiarFotoPerfil,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Color(0xFF0277BD),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
                   _buildSectionTitle("Datos Personales"),
                   const SizedBox(height: 10),
-                  // Observa el "false" al final, indica que NUNCA se pueden editar
                   _buildTextField(
                     "Nombre Completo",
                     _nameController,
@@ -233,34 +288,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 25),
 
-                  // --- SECCIÓN EDITABLE ---
                   _buildSectionTitle("Dirección"),
                   const SizedBox(height: 10),
-                  // Observa el "_isEditing", indica que se activan al darle al botón del AppBar
+                  // Cambiamos por un solo TextField que se puede hacer grande (maxLines)
                   _buildTextField(
-                    "Calle y Número",
-                    _calleController,
+                    "Dirección Completa",
+                    _direccionController,
                     Icons.location_on,
                     _isEditing,
-                  ),
-                  const SizedBox(height: 15),
-                  _buildTextField(
-                    "Colonia",
-                    _coloniaController,
-                    Icons.holiday_village,
-                    _isEditing,
-                  ),
-                  const SizedBox(height: 15),
-                  _buildTextField(
-                    "Ciudad",
-                    _ciudadController,
-                    Icons.location_city,
-                    _isEditing,
+                    maxLines: 2,
                   ),
 
                   const SizedBox(height: 35),
 
-                  // --- SECCIÓN SEGURIDAD ---
                   _buildSectionTitle("Seguridad"),
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
@@ -299,22 +339,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Modifiqué esta función para que acepte un parámetro booleano de si está activo o no
+  // Agregué el parámetro opcional 'maxLines' para que el campo de dirección sea más alto
   Widget _buildTextField(
     String label,
     TextEditingController controller,
     IconData icon,
-    bool isFieldEnabled,
-  ) {
+    bool isFieldEnabled, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       enabled: isFieldEnabled,
+      maxLines: maxLines,
       style: TextStyle(
         color: isFieldEnabled ? Colors.black87 : Colors.grey[600],
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
+        alignLabelWithHint:
+            maxLines > 1, // Alinea el texto arriba si el campo es alto
         prefixIcon: Icon(
           icon,
           color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
@@ -324,7 +368,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderSide: BorderSide.none,
         ),
         filled: true,
-        // Si está bloqueado, se pone en un gris muy sutil para que el paciente sepa que no se toca
         fillColor: isFieldEnabled ? Colors.white : Colors.grey[300],
       ),
     );
