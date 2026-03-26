@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -226,6 +227,43 @@ class AuthService {
       );
 
       return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // --- SUBIR FOTO DE PERFIL ---
+  static Future<Map<String, dynamic>> uploadProfileImage(File imagen) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/paciente/perfil/foto'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        await http.MultipartFile.fromPath('foto_perfil', imagen.path),
+      );
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Foto actualizada exitosamente',
+          'data': jsonDecode(responseBody),
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Error al subir la foto',
+          'data': jsonDecode(responseBody),
+        };
+      }
     } catch (e) {
       return {'success': false, 'message': 'Error de conexión: $e'};
     }

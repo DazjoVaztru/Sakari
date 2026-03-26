@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -29,7 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
 
-  // Variable temporal para guardar la URL de la foto (cuando la traigamos de la base de datos)
+  final ImagePicker _picker = ImagePicker();
   String? _fotoPerfilUrl;
 
   @override
@@ -38,8 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cargarDatosPaciente();
   }
 
-  // --- CARGAR DATOS REALES ---
-  // --- 1. CARGAR DATOS REALES ---
+  // --- CARGAR DATOS ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -50,21 +51,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
 
-        // --- MAGIA AQUÍ: RECIBIR DIRECCIÓN ÚNICA Y SEPARARLA EN 3 CAMPOS ---
-        String direccionCompleta = paciente['direccion'] ?? '';
-        // Cortamos el texto cada vez que encuentre una coma
-        List<String> partes = direccionCompleta.split(',');
-
-        // Llenamos los controladores dependiendo de cuántas partes encontramos
-        _calleController.text = partes.isNotEmpty ? partes[0].trim() : '';
-        _coloniaController.text = partes.length > 1 ? partes[1].trim() : '';
-        // Si hay más comas, unimos el resto para la ciudad
-        _ciudadController.text = partes.length > 2
-            ? partes.sublist(2).join(',').trim()
-            : '';
+        // Leemos los campos por separado tal como vienen de tu base de datos SaaS
+        _calleController.text = paciente['calle'] ?? '';
+        _coloniaController.text = paciente['colonia'] ?? '';
+        _ciudadController.text = paciente['ciudad'] ?? '';
 
         _fotoPerfilUrl = paciente['foto_perfil'];
-
         _isLoading = false;
       });
     } else {
@@ -77,16 +69,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- 2. GUARDAR DIRECCIÓN UNIDA ---
+  // --- GUARDAR DATOS ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
-    // --- MAGIA AQUÍ: JUNTAR LOS 3 CAMPOS EN UN SOLO TEXTO ---
-    String direccionUnida =
-        '${_calleController.text}, ${_coloniaController.text}, ${_ciudadController.text}';
-
-    // Lo enviamos exactamente como la base de datos de tu SaaS lo espera
-    final data = {'direccion': direccionUnida};
+    // Enviamos los campos separados exactamente como los espera Laravel
+    final data = {
+      'calle': _calleController.text,
+      'colonia': _coloniaController.text,
+      'ciudad': _ciudadController.text,
+    };
 
     final response = await AuthService.updateProfile(data);
 
@@ -102,14 +94,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- FUNCION PARA CAMBIAR FOTO (A FUTURO) ---
+  // --- CAMBIAR FOTO DE PERFIL ---
   void _cambiarFotoPerfil() {
-    // Aquí pondremos la lógica del ImagePicker para subir la foto a Laravel
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Próximamente: Abrir galería para cambiar foto 📷'),
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                "Actualizar Foto de Perfil",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF0277BD)),
+              title: const Text('Tomar Foto con la Cámara'),
+              onTap: () async {
+                Navigator.pop(context); // Cierra el menú inferior
+                final XFile? foto = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                );
+                if (foto != null) {
+                  _subirFotoPerfil(File(foto.path));
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF0277BD),
+              ),
+              title: const Text('Elegir de la Galería'),
+              onTap: () async {
+                Navigator.pop(context); // Cierra el menú inferior
+                final XFile? foto = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 70,
+                );
+                if (foto != null) {
+                  _subirFotoPerfil(File(foto.path));
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  // --- FUNCIÓN INTERNA PARA SUBIR LA FOTO ---
+  Future<void> _subirFotoPerfil(File imagen) async {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Subiendo nueva foto... ⏳')));
+
+    // Llamamos a la función de envío que ya habías puesto en tu AuthService
+    final response = await AuthService.uploadProfileImage(imagen);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message'] ?? 'Foto actualizada con éxito ✅'),
+        ),
+      );
+    }
   }
 
   // --- CAMBIAR CONTRASEÑA ---
