@@ -11,28 +11,53 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
-  bool _isLoading = false;
+  bool _isLoading = true; // Iniciamos cargando
 
-  // Controladores de campos NO editables (Puedes llenarlos al inicio con los datos del usuario logueado)
-  final TextEditingController _nameController = TextEditingController(
-    text: "Josue David",
-  );
-  final TextEditingController _emailController = TextEditingController(
-    text: "paciente@sakary.com",
-  );
-  final TextEditingController _phoneController = TextEditingController(
-    text: "238 123 4567",
-  );
+  // Dejamos los controladores vacíos inicialmente
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
-  // Nuevos controladores para los campos SÍ editables
   final TextEditingController _calleController = TextEditingController();
   final TextEditingController _coloniaController = TextEditingController();
   final TextEditingController _ciudadController = TextEditingController();
 
-  // Controladores para la contraseña
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatosPaciente(); // Llamamos a la función al iniciar la pantalla
+  }
+
+  // --- FUNCIÓN PARA CARGAR LOS DATOS REALES ---
+  Future<void> _cargarDatosPaciente() async {
+    final response = await AuthService.getProfile();
+
+    if (response['success'] == true) {
+      final paciente = response['paciente'];
+      setState(() {
+        _nameController.text = paciente['nombre_completo'] ?? '';
+        _emailController.text = paciente['email'] ?? '';
+        _phoneController.text = paciente['telefono'] ?? '';
+        _calleController.text = paciente['calle'] ?? '';
+        _coloniaController.text = paciente['colonia'] ?? '';
+        _ciudadController.text = paciente['ciudad'] ?? '';
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar datos: ${response['message']}'),
+          ),
+        );
+      }
+    }
+  }
 
   // --- FUNCIÓN 1: Guardar Datos ---
   Future<void> _guardarDatosPersonales() async {
