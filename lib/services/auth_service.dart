@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // La URL base que ya comprobamos que funciona
@@ -154,6 +155,57 @@ class AuthService {
       }
     } catch (e) {
       print('Error en forgotPassword: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProfile(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token'); // Recuperamos el token de Sanctum
+
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/paciente/perfil/actualizar'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // Función para cambiar contraseña
+  static Future<Map<String, dynamic>> updatePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/paciente/perfil/password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }
