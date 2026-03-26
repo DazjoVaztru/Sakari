@@ -1,42 +1,34 @@
-class DoctorModel {
+class Doctor {
   final int id;
   final String nombreCompleto;
-  final String especialidad;
   final String cedula;
+  final String especialidad;
   final String telefono;
   final String sobreMi;
-  final String anosExperiencia;
-  final String calificacion;
-  final String pacientesAtendidos;
-  final String imagenUrl;
+  final String? fotoPerfilUrl;
 
-  DoctorModel({
+  Doctor({
     required this.id,
     required this.nombreCompleto,
-    required this.especialidad,
     required this.cedula,
+    required this.especialidad,
     required this.telefono,
     required this.sobreMi,
-    required this.anosExperiencia,
-    required this.calificacion,
-    required this.pacientesAtendidos,
-    required this.imagenUrl,
+    this.fotoPerfilUrl,
   });
 
-  factory DoctorModel.fromJson(Map<String, dynamic> json) {
-    return DoctorModel(
-      id: json['id_doctor'] ?? 1,
+  // Constructor que convierte el JSON de Laravel a nuestro Objeto Doctor
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    return Doctor(
+      id: json['id_doctor'] ?? 0,
       nombreCompleto: json['nombre_completo'] ?? 'Doctor',
+      cedula: json['cedula'] ?? 'Sin registro',
+      // Aquí están los campos preparados para cuando tus compañeros los agreguen a la BD
       especialidad: json['especialidad'] ?? 'Odontología General',
-      cedula: json['cedula_profesional'] ?? 'Sin Cédula',
-      telefono: json['telefono'] ?? '+520000000000',
-      sobreMi: json['sobre_mi'] ?? 'Dentista profesional.',
-      anosExperiencia: json['experiencia']?.toString() ?? '1+',
-      calificacion: json['calificacion']?.toString() ?? '5.0',
-      pacientesAtendidos: json['pacientes_atendidos']?.toString() ?? '100+',
-      imagenUrl:
-          json['imagen_url'] ??
-          'https://img.freepik.com/foto-gratis/doctor-sonriendo-con-estetoscopio_1154-36.jpg',
+      telefono: json['telefono'] ?? '2382754845',
+      sobreMi:
+          json['sobre_mi'] ?? 'Hola, estoy aquí para cuidar de tu sonrisa.',
+      fotoPerfilUrl: json['foto_perfil'], // Puede ser null
     );
   }
 }
