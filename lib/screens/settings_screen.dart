@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// IMPORTANTE: Asegúrate de importar la ruta correcta donde tienes tus servicios
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,9 +11,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
-  bool _notificaciones = true;
-  // Eliminamos la variable _biometria
+  bool _isLoading = false;
 
+  // Controladores de campos NO editables (Puedes llenarlos al inicio con los datos del usuario logueado)
   final TextEditingController _nameController = TextEditingController(
     text: "Josue David",
   );
@@ -21,6 +23,115 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _phoneController = TextEditingController(
     text: "238 123 4567",
   );
+
+  // Nuevos controladores para los campos SÍ editables
+  final TextEditingController _calleController = TextEditingController();
+  final TextEditingController _coloniaController = TextEditingController();
+  final TextEditingController _ciudadController = TextEditingController();
+
+  // Controladores para la contraseña
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+
+  // --- FUNCIÓN 1: Guardar Datos ---
+  Future<void> _guardarDatosPersonales() async {
+    setState(() => _isLoading = true);
+
+    final data = {
+      'calle': _calleController.text,
+      'colonia': _coloniaController.text,
+      'ciudad': _ciudadController.text,
+    };
+
+    final response = await AuthService.updateProfile(data);
+
+    setState(() {
+      _isLoading = false;
+      _isEditing = false; // Bloqueamos los campos al terminar
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Datos actualizados')),
+      );
+    }
+  }
+
+  // --- FUNCIÓN 2: Cambiar Contraseña ---
+  Future<void> _cambiarPassword() async {
+    if (_currentPasswordController.text.isEmpty ||
+        _newPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Llena ambos campos de contraseña')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final response = await AuthService.updatePassword(
+      _currentPasswordController.text,
+      _newPasswordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Proceso finalizado')),
+      );
+    }
+
+    if (response['success'] == true) {
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+    }
+  }
+
+  // DIÁLOGO PARA PEDIR LAS CONTRASEÑAS
+  void _mostrarDialogoPassword() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cambiar Contraseña'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña Actual',
+                ),
+              ),
+              TextField(
+                controller: _newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nueva Contraseña',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Cierra el diálogo
+                _cambiarPassword(); // Ejecuta la función
+              },
+              child: const Text('Actualizar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,168 +151,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           IconButton(
+            // El icono cambia dependiendo de si estamos editando o no
             icon: Icon(
-              _isEditing ? Icons.close : Icons.edit,
+              _isEditing ? Icons.save : Icons.edit,
               color: Colors.white,
             ),
-            onPressed: () => setState(() => _isEditing = !_isEditing),
-            tooltip: _isEditing ? "Cancelar" : "Editar Perfil",
+            onPressed: () {
+              if (_isEditing) {
+                _guardarDatosPersonales();
+              } else {
+                setState(() => _isEditing = true);
+              }
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Center(
-              child: Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF0277BD),
-                        width: 2,
-                      ),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 60,
-                      backgroundImage: NetworkImage(
-                        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-                      ),
-                    ),
-                  ),
-                  if (_isEditing)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0277BD),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (!_isEditing)
-              const Text(
-                "Toca el lápiz arriba para editar",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            const SizedBox(height: 30),
-            _buildSectionTitle("Datos Personales"),
-            const SizedBox(height: 10),
-            Container(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 10),
+                  const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Color(0xFF0277BD),
+                    child: Icon(Icons.person, size: 60, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- SECCIÓN BLOQUEADA ---
+                  _buildSectionTitle("Datos Personales"),
+                  const SizedBox(height: 10),
+                  // Observa el "false" al final, indica que NUNCA se pueden editar
                   _buildTextField(
                     "Nombre Completo",
                     _nameController,
                     Icons.person,
+                    false,
                   ),
                   const SizedBox(height: 15),
                   _buildTextField(
                     "Correo Electrónico",
                     _emailController,
                     Icons.email,
+                    false,
                   ),
                   const SizedBox(height: 15),
-                  _buildTextField("Teléfono", _phoneController, Icons.phone),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            _buildSectionTitle("Preferencias"),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
+                  _buildTextField(
+                    "Teléfono",
+                    _phoneController,
+                    Icons.phone,
+                    false,
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text(
-                      "Recibir Notificaciones",
-                      style: TextStyle(fontWeight: FontWeight.w500),
+
+                  const SizedBox(height: 25),
+
+                  // --- SECCIÓN EDITABLE ---
+                  _buildSectionTitle("Dirección"),
+                  const SizedBox(height: 10),
+                  // Observa el "_isEditing", indica que se activan al darle al botón del AppBar
+                  _buildTextField(
+                    "Calle y Número",
+                    _calleController,
+                    Icons.location_on,
+                    _isEditing,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    "Colonia",
+                    _coloniaController,
+                    Icons.holiday_village,
+                    _isEditing,
+                  ),
+                  const SizedBox(height: 15),
+                  _buildTextField(
+                    "Ciudad",
+                    _ciudadController,
+                    Icons.location_city,
+                    _isEditing,
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  // --- SECCIÓN SEGURIDAD ---
+                  _buildSectionTitle("Seguridad"),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: _mostrarDialogoPassword,
+                    icon: const Icon(Icons.lock_reset, color: Colors.white),
+                    label: const Text(
+                      "Cambiar Contraseña",
+                      style: TextStyle(color: Colors.white),
                     ),
-                    subtitle: const Text("Recordatorios de citas y ofertas"),
-                    activeColor: const Color(0xFF0277BD),
-                    value: _notificaciones,
-                    onChanged: (val) => setState(() => _notificaciones = val),
-                  ),
-                  // Eliminamos el Divider y el SwitchListTile de biometría aquí
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            if (_isEditing)
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() => _isEditing = false);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("¡Cambios guardados correctamente!"),
-                        backgroundColor: Colors.green,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0277BD),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0277BD),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "Guardar Cambios",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 20),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.lock_reset, color: Colors.grey),
-              label: const Text(
-                "Cambiar Contraseña",
-                style: TextStyle(color: Colors.grey),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -219,34 +274,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Modifiqué esta función para que acepte un parámetro booleano de si está activo o no
   Widget _buildTextField(
     String label,
     TextEditingController controller,
     IconData icon,
+    bool isFieldEnabled,
   ) {
     return TextField(
       controller: controller,
-      enabled: _isEditing,
+      enabled: isFieldEnabled,
       style: TextStyle(
-        color: _isEditing ? Colors.black87 : Colors.grey[700],
+        color: isFieldEnabled ? Colors.black87 : Colors.grey[600],
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
           icon,
-          color: _isEditing ? const Color(0xFF0277BD) : Colors.grey,
+          color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
         filled: true,
-        fillColor: _isEditing ? const Color(0xFFE1F5FE) : Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        // Si está bloqueado, se pone en un gris muy sutil para que el paciente sepa que no se toca
+        fillColor: isFieldEnabled ? Colors.white : Colors.grey[300],
       ),
     );
   }
