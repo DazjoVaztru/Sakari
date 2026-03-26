@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,20 +19,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  // Controladores para los campos de dirección separados
-  final TextEditingController _calleController = TextEditingController();
-  final TextEditingController _coloniaController = TextEditingController();
-  final TextEditingController _ciudadController = TextEditingController();
-
-  // NUEVO: Un solo controlador para la dirección completa
+  // NUEVO: UN SOLO CONTROLADOR PARA LA DIRECCIÓN
   final TextEditingController _direccionController = TextEditingController();
 
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
 
-  final ImagePicker _picker = ImagePicker();
   String? _fotoPerfilUrl;
+  File? _imagenLocalSeleccionada;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -40,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cargarDatosPaciente();
   }
 
-  // --- CARGAR DATOS ---
+  // --- CARGAR DATOS REALES ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -51,10 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
 
-        // Leemos los campos por separado tal como vienen de tu base de datos SaaS
-        _calleController.text = paciente['calle'] ?? '';
-        _coloniaController.text = paciente['colonia'] ?? '';
-        _ciudadController.text = paciente['ciudad'] ?? '';
+        // Asignamos directamente la dirección al controlador único
+        _direccionController.text = paciente['direccion'] ?? '';
 
         _fotoPerfilUrl = paciente['foto_perfil'];
         _isLoading = false;
@@ -69,16 +63,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- GUARDAR DATOS ---
+  // --- GUARDAR DIRECCIÓN ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
-    // Enviamos los campos separados exactamente como los espera Laravel
-    final data = {
-      'calle': _calleController.text,
-      'colonia': _coloniaController.text,
-      'ciudad': _ciudadController.text,
-    };
+    // Enviamos el campo único exactamente como lo espera Laravel
+    final data = {'direccion': _direccionController.text};
 
     final response = await AuthService.updateProfile(data);
 
@@ -94,8 +84,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- CAMBIAR FOTO DE PERFIL ---
-  void _cambiarFotoPerfil() {
+  // --- FOTO DE PERFIL ---
+  void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -115,12 +105,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.camera_alt, color: Color(0xFF0277BD)),
               title: const Text('Tomar Foto con la Cámara'),
               onTap: () async {
-                Navigator.pop(context); // Cierra el menú inferior
+                Navigator.pop(context);
                 final XFile? foto = await _picker.pickImage(
                   source: ImageSource.camera,
                   imageQuality: 70,
                 );
                 if (foto != null) {
+                  setState(() => _imagenLocalSeleccionada = File(foto.path));
                   _subirFotoPerfil(File(foto.path));
                 }
               },
@@ -132,12 +123,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               title: const Text('Elegir de la Galería'),
               onTap: () async {
-                Navigator.pop(context); // Cierra el menú inferior
+                Navigator.pop(context);
                 final XFile? foto = await _picker.pickImage(
                   source: ImageSource.gallery,
                   imageQuality: 70,
                 );
                 if (foto != null) {
+                  setState(() => _imagenLocalSeleccionada = File(foto.path));
                   _subirFotoPerfil(File(foto.path));
                 }
               },
@@ -148,25 +140,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- FUNCIÓN INTERNA PARA SUBIR LA FOTO ---
   Future<void> _subirFotoPerfil(File imagen) async {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Subiendo nueva foto... ⏳')));
 
-    // Llamamos a la función de envío que ya habías puesto en tu AuthService
     final response = await AuthService.uploadProfileImage(imagen);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response['message'] ?? 'Foto actualizada con éxito ✅'),
-        ),
+        SnackBar(content: Text(response['message'] ?? 'Foto actualizada ✅')),
       );
     }
   }
 
-  // --- CAMBIAR CONTRASEÑA ---
+  // --- CONTRASEÑA ---
   Future<void> _cambiarPassword() async {
     if (_currentPasswordController.text.isEmpty ||
         _newPasswordController.text.isEmpty) {
@@ -281,31 +269,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const SizedBox(height: 10),
 
-                  // --- DISEÑO DE FOTO DE PERFIL CON BOTÓN ---
+                  // --- FOTO DE PERFIL ---
                   Stack(
                     children: [
                       CircleAvatar(
                         radius: 55,
                         backgroundColor: const Color(0xFF0277BD),
-                        backgroundImage:
-                            _fotoPerfilUrl != null && _fotoPerfilUrl!.isNotEmpty
-                            ? NetworkImage(
-                                _fotoPerfilUrl!,
-                              ) // Muestra la foto de la BD
-                            : null,
-                        child: _fotoPerfilUrl == null || _fotoPerfilUrl!.isEmpty
+                        backgroundImage: _imagenLocalSeleccionada != null
+                            ? FileImage(_imagenLocalSeleccionada!)
+                                  as ImageProvider
+                            : (_fotoPerfilUrl != null &&
+                                      _fotoPerfilUrl!.isNotEmpty
+                                  ? NetworkImage(_fotoPerfilUrl!)
+                                  : null),
+                        child:
+                            (_imagenLocalSeleccionada == null &&
+                                (_fotoPerfilUrl == null ||
+                                    _fotoPerfilUrl!.isEmpty))
                             ? const Icon(
                                 Icons.person,
                                 size: 60,
                                 color: Colors.white,
-                              ) // Icono por defecto
+                              )
                             : null,
                       ),
                       Positioned(
                         bottom: 0,
                         right: 0,
                         child: GestureDetector(
-                          onTap: _cambiarFotoPerfil,
+                          onTap: _mostrarOpcionesDeFoto,
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
@@ -358,13 +350,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   _buildSectionTitle("Dirección"),
                   const SizedBox(height: 10),
-                  // Cambiamos por un solo TextField que se puede hacer grande (maxLines)
+                  // Le quitamos el maxLines para que vuelva a su tamaño normal
                   _buildTextField(
                     "Dirección Completa",
                     _direccionController,
                     Icons.location_on,
                     _isEditing,
-                    maxLines: 2,
                   ),
 
                   const SizedBox(height: 35),
@@ -407,26 +398,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Agregué el parámetro opcional 'maxLines' para que el campo de dirección sea más alto
   Widget _buildTextField(
     String label,
     TextEditingController controller,
     IconData icon,
-    bool isFieldEnabled, {
-    int maxLines = 1,
-  }) {
+    bool isFieldEnabled,
+  ) {
     return TextField(
       controller: controller,
       enabled: isFieldEnabled,
-      maxLines: maxLines,
       style: TextStyle(
         color: isFieldEnabled ? Colors.black87 : Colors.grey[600],
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
-        alignLabelWithHint:
-            maxLines > 1, // Alinea el texto arriba si el campo es alto
         prefixIcon: Icon(
           icon,
           color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
