@@ -17,6 +17,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  // Controladores para los campos de dirección separados
+  final TextEditingController _calleController = TextEditingController();
+  final TextEditingController _coloniaController = TextEditingController();
+  final TextEditingController _ciudadController = TextEditingController();
+
   // NUEVO: Un solo controlador para la dirección completa
   final TextEditingController _direccionController = TextEditingController();
 
@@ -34,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // --- CARGAR DATOS REALES ---
+  // --- 1. CARGAR DATOS REALES ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -44,12 +50,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
 
-        // Asumiendo que ahora tu backend envía todo junto en 'direccion'
-        // Si tu backend envía la dirección guardada en el campo 'calle', cámbialo aquí.
-        _direccionController.text =
-            paciente['direccion'] ?? paciente['calle'] ?? '';
+        // --- MAGIA AQUÍ: RECIBIR DIRECCIÓN ÚNICA Y SEPARARLA EN 3 CAMPOS ---
+        String direccionCompleta = paciente['direccion'] ?? '';
+        // Cortamos el texto cada vez que encuentre una coma
+        List<String> partes = direccionCompleta.split(',');
 
-        // Guardamos la URL de la foto si tu SaaS ya la envía
+        // Llenamos los controladores dependiendo de cuántas partes encontramos
+        _calleController.text = partes.isNotEmpty ? partes[0].trim() : '';
+        _coloniaController.text = partes.length > 1 ? partes[1].trim() : '';
+        // Si hay más comas, unimos el resto para la ciudad
+        _ciudadController.text = partes.length > 2
+            ? partes.sublist(2).join(',').trim()
+            : '';
+
         _fotoPerfilUrl = paciente['foto_perfil'];
 
         _isLoading = false;
@@ -64,15 +77,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- GUARDAR DATOS PERSONALES ---
+  // --- 2. GUARDAR DIRECCIÓN UNIDA ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
-    // Ahora enviamos un solo campo para la dirección
-    final data = {
-      'direccion': _direccionController
-          .text, // Asegúrate de que Laravel reciba este mismo nombre
-    };
+    // --- MAGIA AQUÍ: JUNTAR LOS 3 CAMPOS EN UN SOLO TEXTO ---
+    String direccionUnida =
+        '${_calleController.text}, ${_coloniaController.text}, ${_ciudadController.text}';
+
+    // Lo enviamos exactamente como la base de datos de tu SaaS lo espera
+    final data = {'direccion': direccionUnida};
 
     final response = await AuthService.updateProfile(data);
 
