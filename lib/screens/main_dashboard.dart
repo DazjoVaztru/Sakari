@@ -71,10 +71,29 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarCitaDesdeBD() async {
-    final citas = await CitasService.obtenerProximasCitas(miToken); // Llama a la nueva función
+    final citas = await CitasService.obtenerProximasCitas(miToken); 
     if (mounted) {
       setState(() {
-        citasProximas = citas;
+        final ahora = DateTime.now();
+        // Definimos el límite exacto de 7 días (una semana) hacia el futuro
+        final limiteSemana = ahora.add(const Duration(days: 7));
+
+        // Filtramos las citas según tus nuevas reglas
+        citasProximas = citas.where((cita) {
+          // 1. REGLA DE CONFIRMACIÓN: Si ya la confirmó, desaparece del dashboard
+          if (cita.estadoCita.toLowerCase() == 'confirmada') {
+            return false;
+          }
+
+          // 2. REGLA DE TIEMPO: Si la cita es para una fecha lejana (> 7 días), no la mostramos aún
+          if (cita.fechaHoraInicio.isAfter(limiteSemana)) {
+            return false;
+          }
+
+          // Si pasa ambas reglas (es pendiente y es esta semana), se queda en el dashboard
+          return true;
+        }).toList();
+
         isLoadingCita = false;
       });
     }
