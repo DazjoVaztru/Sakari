@@ -53,7 +53,7 @@ class CitaModel {
       nombreServicio: servicioName,
       haSidoReagendada:
           json['notas'] != null &&
-          json['notas'].toString().contains('⚠️ REAGENDADA POR PACIENTE'),
+          json['notas'].toString().contains('SOLICITUD DE REAGENDA'),
       tipsHigiene: json['tips_pdf_url']?.toString() ?? '',
       cuidados: json['cuidados_pdf_url']?.toString() ?? '',
     );

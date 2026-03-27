@@ -23,11 +23,10 @@ class Doctor {
       id: json['id_doctor'] ?? 0,
       nombreCompleto: json['nombre_completo'] ?? 'Doctor',
       cedula: json['cedula'] ?? 'Sin registro',
-      // Aquí están los campos preparados para cuando tus compañeros los agreguen a la BD
       especialidad: json['especialidad'] ?? 'Odontología General',
-      telefono: json['telefono'] ?? '2382754845',
-      sobreMi:
-          json['sobre_mi'] ?? 'Hola, estoy aquí para cuidar de tu sonrisa.',
+      // Retiramos los datos genéricos colocados a mano para usar los del backend
+      telefono: json['telefono'] ?? 'No especificado',
+      sobreMi: json['sobre_mi'] ?? 'Sin descripción.',
       fotoPerfilUrl: json['foto_perfil'], // Puede ser null
     );
   }
