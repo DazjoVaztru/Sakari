@@ -75,30 +75,21 @@ class _MainDashboardState extends State<MainDashboard> {
     if (mounted) {
       setState(() {
         final ahora = DateTime.now();
-        // Definimos el límite exacto de 7 días (una semana) hacia el futuro
-        final limiteSemana = ahora.add(const Duration(days: 7));
 
-        // 1. Filtramos las citas según tus reglas
+        // 1. Solo nos aseguramos de que la cita no haya pasado ya
         var citasFiltradas = citas.where((cita) {
-          // REGLA DE CONFIRMACIÓN: Si ya la confirmó, la ignoramos
-          if (cita.estadoCita.toLowerCase() == 'confirmada') {
-            return false;
-          }
-          // REGLA DE TIEMPO: Si es lejana (> 7 días), la ignoramos
-          if (cita.fechaHoraInicio.isAfter(limiteSemana)) {
-            return false;
-          }
-          return true;
+          return cita.fechaHoraInicio.isAfter(ahora);
         }).toList();
 
-        // 2. Ordenamos por fecha por seguridad (para que la más cercana quede en la posición 0)
+        // 2. Ordenamos por fecha para que la más cercana quede al principio
         citasFiltradas.sort((a, b) => a.fechaHoraInicio.compareTo(b.fechaHoraInicio));
 
-        // 3. MAGIA: Si hay citas válidas, reemplazamos la lista entera dejando SOLO la primera
+        // 3. Tomamos SOLO la primera cita (la más próxima) sin importar cuándo sea
         if (citasFiltradas.isNotEmpty) {
           citasProximas = [citasFiltradas.first]; 
         } else {
-          citasProximas = []; // Si no hay nada, la vaciamos para que muestre el mensaje de "No tienes citas"
+          // Si realmente no tiene ninguna cita a futuro, la dejamos vacía
+          citasProximas = []; 
         }
 
         isLoadingCita = false;
