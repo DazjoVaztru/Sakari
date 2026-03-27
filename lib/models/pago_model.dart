@@ -3,7 +3,7 @@ class PagoModel {
   final String concepto;
   final double monto;
   final DateTime fecha;
-  final String estado; // Puede ser 'pendiente' o 'pagado'
+  final String estado; 
 
   PagoModel({
     required this.id,
@@ -15,11 +15,12 @@ class PagoModel {
 
   factory PagoModel.fromJson(Map<String, dynamic> json) {
     return PagoModel(
-      id: json['id_pago'] ?? 0,
-      concepto: json['concepto'] ?? 'Tratamiento Dental',
-      monto: double.parse(json['monto']?.toString() ?? '0.0'),
-      fecha: DateTime.parse(json['fecha'] ?? DateTime.now().toIso8601String()),
-      estado: json['estado'] ?? 'pendiente',
+      id: json['id_ingreso'] ?? json['id'] ?? 0,
+      // Usamos el método de pago o alguna referencia que traiga Laravel
+      concepto: json['metodo_pago'] ?? json['concepto'] ?? 'Abono a tratamiento', 
+      monto: double.tryParse(json['monto']?.toString() ?? '0') ?? 0.0,
+      fecha: DateTime.parse(json['created_at'] ?? json['fecha'] ?? DateTime.now().toIso8601String()),
+      estado: 'pagado', // Si viene de la base de datos de ingresos, ya está pagado
     );
   }
 }

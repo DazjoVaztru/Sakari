@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pago_model.dart';
 import '../services/pagos_service.dart';
 
@@ -13,9 +14,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   List<PagoModel> listaPagos = [];
   bool isLoading = true;
 
-  // Variables para la tarjeta principal (Estado de cuenta general)
-  final double costoTotal = 15000.0;
-  final double totalPagado = 10000.0;
+  // Ya no son fijos, iniciarán en 0 y se llenarán con la base de datos
+  double costoTotal = 0.0;
+  double totalPagado = 0.0;
 
   @override
   void initState() {
@@ -24,12 +25,27 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Future<void> _cargarPagos() async {
-    final pagos = await PagosService.obtenerHistorialPagos(1);
-    if (mounted) {
-      setState(() {
-        listaPagos = pagos;
-        isLoading = false;
-      });
+    final prefs = await SharedPreferences.getInstance();
+    final String token = prefs.getString('token') ?? "";
+
+    if (token.isNotEmpty) {
+      final data = await PagosService.obtenerEstadoCuenta(token);
+      
+      if (mounted) {
+        setState(() {
+          costoTotal = double.tryParse(data['total_cargos']?.toString() ?? '0') ?? 0.0;
+          totalPagado = double.tryParse(data['total_abonado']?.toString() ?? '0') ?? 0.0;
+          
+          if (data['historial'] != null && data['historial'] is List) {
+            listaPagos = (data['historial'] as List)
+                .map((item) => PagoModel.fromJson(item))
+                .toList();
+          }
+          isLoading = false;
+        });
+      }
+    } else {
+      setState(() => isLoading = false);
     }
   }
 

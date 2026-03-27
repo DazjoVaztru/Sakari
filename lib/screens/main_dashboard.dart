@@ -316,11 +316,24 @@ class _MainDashboardState extends State<MainDashboard> {
                         right: 20,
                       ), // Un margen para separar si hay más de 1 promo
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        // 👇 NUEVO: Si hay imagen, la pone de fondo. Si no, usa el color azul.
+                        image: promo.imagenUrl.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(promo.imagenUrl),
+                                fit: BoxFit.cover,
+                                colorFilter: ColorFilter.mode(
+                                  Colors.black.withOpacity(0.5), // Oscurece la foto para que el texto se lea
+                                  BlendMode.darken,
+                                ),
+                              )
+                            : null,
+                        gradient: promo.imagenUrl.isEmpty
+                            ? const LinearGradient(
+                                colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(

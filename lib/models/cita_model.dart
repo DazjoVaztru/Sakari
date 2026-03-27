@@ -54,12 +54,8 @@ class CitaModel {
       haSidoReagendada:
           json['notas'] != null &&
           json['notas'].toString().contains('⚠️ REAGENDADA POR PACIENTE'),
-      tipsHigiene:
-          json['tips_pdf'] ??
-          json['tips_higiene'] ??
-          json['recomendaciones_higiene'] ??
-          "",
-      cuidados: json['cuidados_post_tratamiento'] ?? json['cuidados'] ?? "",
+      tipsHigiene: json['tips_pdf_url']?.toString() ?? '',
+      cuidados: json['cuidados_pdf_url']?.toString() ?? '',
     );
   }
 }
