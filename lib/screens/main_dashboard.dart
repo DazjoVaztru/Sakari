@@ -78,21 +78,28 @@ class _MainDashboardState extends State<MainDashboard> {
         // Definimos el límite exacto de 7 días (una semana) hacia el futuro
         final limiteSemana = ahora.add(const Duration(days: 7));
 
-        // Filtramos las citas según tus nuevas reglas
-        citasProximas = citas.where((cita) {
-          // 1. REGLA DE CONFIRMACIÓN: Si ya la confirmó, desaparece del dashboard
+        // 1. Filtramos las citas según tus reglas
+        var citasFiltradas = citas.where((cita) {
+          // REGLA DE CONFIRMACIÓN: Si ya la confirmó, la ignoramos
           if (cita.estadoCita.toLowerCase() == 'confirmada') {
             return false;
           }
-
-          // 2. REGLA DE TIEMPO: Si la cita es para una fecha lejana (> 7 días), no la mostramos aún
+          // REGLA DE TIEMPO: Si es lejana (> 7 días), la ignoramos
           if (cita.fechaHoraInicio.isAfter(limiteSemana)) {
             return false;
           }
-
-          // Si pasa ambas reglas (es pendiente y es esta semana), se queda en el dashboard
           return true;
         }).toList();
+
+        // 2. Ordenamos por fecha por seguridad (para que la más cercana quede en la posición 0)
+        citasFiltradas.sort((a, b) => a.fechaHoraInicio.compareTo(b.fechaHoraInicio));
+
+        // 3. MAGIA: Si hay citas válidas, reemplazamos la lista entera dejando SOLO la primera
+        if (citasFiltradas.isNotEmpty) {
+          citasProximas = [citasFiltradas.first]; 
+        } else {
+          citasProximas = []; // Si no hay nada, la vaciamos para que muestre el mensaje de "No tienes citas"
+        }
 
         isLoadingCita = false;
       });
