@@ -38,8 +38,9 @@ class _DentistScreenState extends State<DentistScreen> {
       'whatsapp://send?phone=$telefono&text=${Uri.encodeComponent(mensaje)}',
     );
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication))
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
         throw Exception();
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

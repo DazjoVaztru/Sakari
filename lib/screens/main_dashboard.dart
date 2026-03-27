@@ -24,12 +24,9 @@ class _MainDashboardState extends State<MainDashboard> {
   // Variables de Estado
   bool tratamientoRealizado = true;
 
-  // Nuevas variables para cargar la base de datos
-  CitaModel? citaActual;
+  // Variables NUEVAS para la lista completa de citas
+  List<CitaModel> citasProximas = [];
   bool isLoadingCita = true;
-  DateTime fechaCita = DateTime.now();
-  String estadoCita = "Cargando...";
-  Color colorEstado = Colors.grey;
   List<PublicidadModel> listaPromociones = [];
   bool isLoadingPromo = true;
   List<String> _diasBloqueados = [];
@@ -74,21 +71,11 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarCitaDesdeBD() async {
-    // Ahora enviamos el TOKEN en lugar de un ID quemado
-    final cita = await CitasService.obtenerProximaCita(miToken);
-
+    final citas = await CitasService.obtenerProximasCitas(miToken); // Llama a la nueva función
     if (mounted) {
       setState(() {
-        citaActual = cita;
+        citasProximas = citas;
         isLoadingCita = false;
-
-        if (cita != null) {
-          fechaCita = cita.fechaHoraInicio;
-          estadoCita = cita.estadoCita;
-          colorEstado = cita.estadoCita == 'pendiente'
-              ? Colors.orange
-              : Colors.green;
-        }
       });
     }
   }
@@ -415,7 +402,7 @@ class _MainDashboardState extends State<MainDashboard> {
                   child: CircularProgressIndicator(color: Color(0xFF0277BD)),
                 ),
               )
-            else if (citaActual == null)
+            else if (citasProximas.isEmpty)
               // 👇 AQUÍ PINTAMOS QUE NO HAY CITA 👇
               Container(
                 width: double.infinity,
@@ -453,192 +440,197 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               )
             else
-              // 👇 AQUÍ EMPIEZA TU NUEVO DISEÑO DE LA TARJETA BLANCA 👇
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // --- FILA 1: FECHA Y ETIQUETA DE ESTADO ---
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Bloque de la fecha (Izquierda)
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE1F5FE),
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: const Icon(
-                                Icons.calendar_month,
-                                color: Color(0xFF0277BD),
-                                size: 30,
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+              // 👇 MOSTRAMOS TODAS LAS CITAS DINÁMICAMENTE 👇
+              ...citasProximas.map((cita) {
+                final DateTime fechaCita = cita.fechaHoraInicio;
+                final String estadoCita = cita.estadoCita;
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.only(bottom: 15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // --- FILA 1: FECHA Y ETIQUETA DE ESTADO ---
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Bloque de la fecha (Izquierda)
+                          Expanded(
+                            child: Row(
                               children: [
-                                Text(
-                                  "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE1F5FE),
+                                    borderRadius: BorderRadius.circular(15),
+                                  ),
+                                  child: const Icon(
+                                    Icons.calendar_month,
+                                    color: Color(0xFF0277BD),
+                                    size: 30,
                                   ),
                                 ),
-                                Text(
-                                  "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
-                                  style: const TextStyle(color: Colors.grey),
+                                const SizedBox(width: 15),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
+                                      style: const TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-
-                        // 👇 Bloque de la Etiqueta de Estado (Derecha) 👇
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
                           ),
-                          decoration: BoxDecoration(
-                            color: estadoCita.toLowerCase() == 'confirmada'
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
+
+                          // 👇 Bloque de la Etiqueta de Estado (Derecha) 👇
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
                               color: estadoCita.toLowerCase() == 'confirmada'
-                                  ? Colors.green
-                                  : Colors.orange,
-                              width: 1,
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: estadoCita.toLowerCase() == 'confirmada'
+                                    ? Colors.green
+                                    : Colors.orange,
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              estadoCita.toUpperCase(),
+                              style: TextStyle(
+                                color: estadoCita.toLowerCase() == 'confirmada'
+                                    ? Colors.green.shade700
+                                    : Colors.orange.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            estadoCita.toUpperCase(),
-                            style: TextStyle(
-                              color: estadoCita.toLowerCase() == 'confirmada'
-                                  ? Colors.green.shade700
-                                  : Colors.orange.shade700,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
+                        ],
+                      ),
+
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 15),
+                        child: Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                      ),
+
+                      // --- FILA 2: EL TRATAMIENTO ---
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blueGrey.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.medical_information,
+                              color: Color(0xFF0277BD),
+                              size: 20,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                      child: Divider(color: Color(0xFFEEEEEE), thickness: 1),
-                    ),
-
-                    // --- FILA 2: EL TRATAMIENTO (EN LUGAR DEL DOCTOR) ---
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blueGrey.shade50,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.medical_information,
-                            color: Color(0xFF0277BD),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Tratamiento a realizar:",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                citaActual!.nombreServicio,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // Botones de Confirmar y Reagendar
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildActionButton(
-                            "Confirmar",
-                            const Color(0xFF0277BD),
-                            true,
-                            onTap: _accionConfirmar,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildActionButton(
-                            "Reagendar",
-                            // Evaluamos si ya fue reagendada O si ya está confirmada
-                            (citaActual!.haSidoReagendada ||
-                                    citaActual!.estadoCita.toLowerCase() ==
-                                        'confirmada' ||
-                                    estadoCita == 'Confirmada')
-                                ? Colors.grey.shade400
-                                : Colors.grey,
-                            false,
-                            onTap: () {
-                              // Validaciones antes de abrir el modal
-                              if (citaActual!.estadoCita.toLowerCase() ==
-                                      'confirmada' ||
-                                  estadoCita == 'Confirmada') {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'No puedes reagendar una cita que ya confirmaste.',
-                                    ),
-                                    backgroundColor: Colors.orange,
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Tratamiento a realizar:",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
                                   ),
-                                );
-                              } else if (citaActual!.haSidoReagendada) {
-                                _mostrarAlertaLimiteReagendos();
-                              } else {
-                                _accionReagendar();
-                              }
-                            },
+                                ),
+                                Text(
+                                  cita.nombreServicio,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ), // <-- Cierre del Container de la Tarjeta de Cita
+                        ],
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      // Botones de Confirmar y Reagendar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildActionButton(
+                              "Confirmar",
+                              const Color(0xFF0277BD),
+                              true,
+                              onTap: () => _accionConfirmar(cita.id),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildActionButton(
+                              "Reagendar",
+                              // Evaluamos si ya fue reagendada O si ya está confirmada
+                              (cita.haSidoReagendada ||
+                                      cita.estadoCita.toLowerCase() ==
+                                          'confirmada')
+                                  ? Colors.grey.shade400
+                                  : Colors.grey,
+                              false,
+                              onTap: () {
+                                // Validaciones antes de abrir el modal
+                                if (cita.estadoCita.toLowerCase() ==
+                                    'confirmada') {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No puedes reagendar una cita que ya confirmaste.',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                } else if (cita.haSidoReagendada) {
+                                  _mostrarAlertaLimiteReagendos();
+                                } else {
+                                  _accionReagendar(cita);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
 
             const SizedBox(height: 35),
 
@@ -685,10 +677,7 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  void _accionConfirmar() async {
-    if (citaActual == null) return;
-
-    // Mostramos un mensajito de carga
+  void _accionConfirmar(int idCita) async {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Confirmando cita en el sistema..."),
@@ -696,22 +685,18 @@ class _MainDashboardState extends State<MainDashboard> {
       ),
     );
 
-    // Le avisamos a Laravel
-    final resultado = await CitasService.confirmarCita(miToken, citaActual!.id);
+    final resultado = await CitasService.confirmarCita(miToken, idCita);
 
     if (mounted) {
       if (resultado['success'] == true) {
-        // Solo si Laravel dice "OK", pintamos de verde
-        setState(() {
-          estadoCita = "Confirmada";
-          colorEstado = Colors.green;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("¡Cita confirmada exitosamente!"),
             backgroundColor: Colors.green,
           ),
         );
+        // Volvemos a descargar la lista para que se actualicen los colores
+        _cargarCitaDesdeBD(); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -723,7 +708,7 @@ class _MainDashboardState extends State<MainDashboard> {
     }
   }
 
-  void _accionReagendar() {
+  void _accionReagendar(CitaModel citaAReagendar) {
     final BuildContext contextoPrincipal = context;
 
     // 🔥 BUSCADOR INTELIGENTE DEL PRIMER DÍA LIBRE 🔥
@@ -981,7 +966,7 @@ class _MainDashboardState extends State<MainDashboard> {
                                     final Map<String, dynamic> resultado =
                                         await CitasService.reagendarCita(
                                           miToken,
-                                          citaActual!.id,
+                                          citaAReagendar.id,
                                           fechaTemp,
                                           horaSeleccionada!,
                                         );
@@ -1104,10 +1089,11 @@ class _MainDashboardState extends State<MainDashboard> {
 
   void _mostrarRecomendacionesHigiene(BuildContext context) async {
     // Verificamos si la base de datos nos mandó un link de PDF válido
-    if (citaActual != null &&
-        citaActual!.tipsHigiene.isNotEmpty &&
-        citaActual!.tipsHigiene.startsWith('http')) {
-      final Uri urlPdf = Uri.parse(citaActual!.tipsHigiene);
+    final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
+    if (citaPrimera != null &&
+        citaPrimera.tipsHigiene.isNotEmpty &&
+        citaPrimera.tipsHigiene.startsWith('http')) {
+      final Uri urlPdf = Uri.parse(citaPrimera.tipsHigiene);
 
       try {
         if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {
@@ -1147,10 +1133,11 @@ class _MainDashboardState extends State<MainDashboard> {
 
   void _mostrarCuidadosPostTratamiento(BuildContext context) async {
     // Verificamos si la base de datos nos mandó un link de PDF válido
-    if (citaActual != null &&
-        citaActual!.cuidados.isNotEmpty &&
-        citaActual!.cuidados.startsWith('http')) {
-      final Uri urlPdf = Uri.parse(citaActual!.cuidados);
+    final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
+    if (citaPrimera != null &&
+        citaPrimera.cuidados.isNotEmpty &&
+        citaPrimera.cuidados.startsWith('http')) {
+      final Uri urlPdf = Uri.parse(citaPrimera.cuidados);
 
       try {
         if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {

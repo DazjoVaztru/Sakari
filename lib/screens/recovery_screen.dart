@@ -45,8 +45,9 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
     });
 
     // 5. Mostrar el resultado (Verde si funcionó, Rojo si falló)
-    if (!mounted)
+    if (!mounted) {
       return; // Evita errores si el usuario cerró la pantalla antes de que respondiera la API
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result['message']),

@@ -40,6 +40,34 @@ class CitasService {
     }
   }
 
+  // --- OBTENER TODAS LAS PRÓXIMAS CITAS (FORMATO LISTA) ---
+  static Future<List<CitaModel>> obtenerProximasCitas(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/citas-proximas'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        
+        if (jsonResponse['success'] == true) {
+          List<dynamic> listaCitas = jsonResponse['data'] ?? [];
+          // Mapeamos toda la lista a modelos
+          return listaCitas.map((json) => CitaModel.fromJson(json)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print("Error al obtener la lista de citas: $e");
+      return [];
+    }
+  }
+
   // --- 2. REAGENDAR CITA (REAL) ---
   static Future<Map<String, dynamic>> reagendarCita(
     String token,

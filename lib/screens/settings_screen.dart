@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                     subtitle: const Text("Recordatorios de citas y ofertas"),
-                    activeColor: const Color(0xFF0277BD),
+                    activeThumbColor: const Color(0xFF0277BD),
                     value: _notificaciones,
                     onChanged: (val) => setState(() => _notificaciones = val),
                   ),
