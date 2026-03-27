@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   // La URL base que ya comprobamos que funciona
@@ -154,6 +156,115 @@ class AuthService {
       }
     } catch (e) {
       print('Error en forgotPassword: $e');
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateProfile(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token'); // Recuperamos el token de Sanctum
+
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/paciente/perfil/actualizar'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(data),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // Función para cambiar contraseña
+  static Future<Map<String, dynamic>> updatePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.post(
+        Uri.parse('${AuthService.baseUrl}/paciente/perfil/password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // --- OBTENER DATOS DEL PERFIL ---
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/paciente/perfil'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {'success': false, 'message': 'Error de conexión: $e'};
+    }
+  }
+
+  // --- SUBIR FOTO DE PERFIL ---
+  static Future<Map<String, dynamic>> uploadProfileImage(File imagen) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/paciente/perfil/foto'),
+      );
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        await http.MultipartFile.fromPath('foto_perfil', imagen.path),
+      );
+
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': 'Foto actualizada exitosamente',
+          'data': jsonDecode(responseBody),
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Error al subir la foto',
+          'data': jsonDecode(responseBody),
+        };
+      }
+    } catch (e) {
       return {'success': false, 'message': 'Error de conexión: $e'};
     }
   }

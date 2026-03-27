@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,18 +12,221 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
-  bool _notificaciones = true;
-  // Eliminamos la variable _biometria
+  bool _isLoading = true;
 
-  final TextEditingController _nameController = TextEditingController(
-    text: "Josue David",
-  );
-  final TextEditingController _emailController = TextEditingController(
-    text: "paciente@sakary.com",
-  );
-  final TextEditingController _phoneController = TextEditingController(
-    text: "238 123 4567",
-  );
+  // Controladores de campos NO editables
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
+  // NUEVO: UN SOLO CONTROLADOR PARA LA DIRECCIÓN
+  final TextEditingController _direccionController = TextEditingController();
+
+  final TextEditingController _currentPasswordController =
+      TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+
+  String? _fotoPerfilUrl;
+  File? _imagenLocalSeleccionada;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarDatosPaciente();
+  }
+
+  // --- CARGAR DATOS REALES ---
+  Future<void> _cargarDatosPaciente() async {
+    final response = await AuthService.getProfile();
+
+    if (response['success'] == true) {
+      final paciente = response['paciente'];
+      setState(() {
+        _nameController.text = paciente['nombre_completo'] ?? '';
+        _emailController.text = paciente['email'] ?? '';
+        _phoneController.text = paciente['telefono'] ?? '';
+
+        // Asignamos directamente la dirección al controlador único
+        _direccionController.text = paciente['direccion'] ?? '';
+
+        _fotoPerfilUrl = paciente['foto_perfil'];
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar: ${response['message']}')),
+        );
+      }
+    }
+  }
+
+  // --- GUARDAR DIRECCIÓN ---
+  Future<void> _guardarDatosPersonales() async {
+    setState(() => _isLoading = true);
+
+    // Enviamos el campo único exactamente como lo espera Laravel
+    final data = {'direccion': _direccionController.text};
+
+    final response = await AuthService.updateProfile(data);
+
+    setState(() {
+      _isLoading = false;
+      _isEditing = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Datos actualizados')),
+      );
+    }
+  }
+
+  // --- FOTO DE PERFIL ---
+  void _mostrarOpcionesDeFoto() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                "Actualizar Foto de Perfil",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF0277BD)),
+              title: const Text('Tomar Foto con la Cámara'),
+              onTap: () async {
+                Navigator.pop(context);
+                final XFile? foto = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 70,
+                );
+                if (foto != null) {
+                  setState(() => _imagenLocalSeleccionada = File(foto.path));
+                  _subirFotoPerfil(File(foto.path));
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF0277BD),
+              ),
+              title: const Text('Elegir de la Galería'),
+              onTap: () async {
+                Navigator.pop(context);
+                final XFile? foto = await _picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 70,
+                );
+                if (foto != null) {
+                  setState(() => _imagenLocalSeleccionada = File(foto.path));
+                  _subirFotoPerfil(File(foto.path));
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _subirFotoPerfil(File imagen) async {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Subiendo nueva foto... ⏳')));
+
+    final response = await AuthService.uploadProfileImage(imagen);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Foto actualizada ✅')),
+      );
+    }
+  }
+
+  // --- CONTRASEÑA ---
+  Future<void> _cambiarPassword() async {
+    if (_currentPasswordController.text.isEmpty ||
+        _newPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Llena ambos campos de contraseña')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final response = await AuthService.updatePassword(
+      _currentPasswordController.text,
+      _newPasswordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? 'Proceso finalizado')),
+      );
+    }
+
+    if (response['success'] == true) {
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+    }
+  }
+
+  void _mostrarDialogoPassword() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cambiar Contraseña'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña Actual',
+                ),
+              ),
+              TextField(
+                controller: _newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Nueva Contraseña',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _cambiarPassword();
+              },
+              child: const Text('Actualizar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,167 +247,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isEditing ? Icons.close : Icons.edit,
+              _isEditing ? Icons.save : Icons.edit,
               color: Colors.white,
             ),
-            onPressed: () => setState(() => _isEditing = !_isEditing),
-            tooltip: _isEditing ? "Cancelar" : "Editar Perfil",
+            onPressed: () {
+              if (_isEditing) {
+                _guardarDatosPersonales();
+              } else {
+                setState(() => _isEditing = true);
+              }
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Center(
-              child: Stack(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF0277BD),
-                        width: 2,
-                      ),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 60,
-                      backgroundImage: NetworkImage(
-                        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-                      ),
-                    ),
-                  ),
-                  if (_isEditing)
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0277BD),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (!_isEditing)
-              const Text(
-                "Toca el lápiz arriba para editar",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            const SizedBox(height: 30),
-            _buildSectionTitle("Datos Personales"),
-            const SizedBox(height: 10),
-            Container(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  const SizedBox(height: 10),
+
+                  // --- FOTO DE PERFIL ---
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 55,
+                        backgroundColor: const Color(0xFF0277BD),
+                        backgroundImage: _imagenLocalSeleccionada != null
+                            ? FileImage(_imagenLocalSeleccionada!)
+                                  as ImageProvider
+                            : (_fotoPerfilUrl != null &&
+                                      _fotoPerfilUrl!.isNotEmpty
+                                  ? NetworkImage(_fotoPerfilUrl!)
+                                  : null),
+                        child:
+                            (_imagenLocalSeleccionada == null &&
+                                (_fotoPerfilUrl == null ||
+                                    _fotoPerfilUrl!.isEmpty))
+                            ? const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: _mostrarOpcionesDeFoto,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Color(0xFF0277BD),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
+                  _buildSectionTitle("Datos Personales"),
+                  const SizedBox(height: 10),
                   _buildTextField(
                     "Nombre Completo",
                     _nameController,
                     Icons.person,
+                    false,
                   ),
                   const SizedBox(height: 15),
                   _buildTextField(
                     "Correo Electrónico",
                     _emailController,
                     Icons.email,
+                    false,
                   ),
                   const SizedBox(height: 15),
-                  _buildTextField("Teléfono", _phoneController, Icons.phone),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            _buildSectionTitle("Preferencias"),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
+                  _buildTextField(
+                    "Teléfono",
+                    _phoneController,
+                    Icons.phone,
+                    false,
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    title: const Text(
-                      "Recibir Notificaciones",
-                      style: TextStyle(fontWeight: FontWeight.w500),
+
+                  const SizedBox(height: 25),
+
+                  _buildSectionTitle("Dirección"),
+                  const SizedBox(height: 10),
+                  // Le quitamos el maxLines para que vuelva a su tamaño normal
+                  _buildTextField(
+                    "Dirección Completa",
+                    _direccionController,
+                    Icons.location_on,
+                    _isEditing,
+                  ),
+
+                  const SizedBox(height: 35),
+
+                  _buildSectionTitle("Seguridad"),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: _mostrarDialogoPassword,
+                    icon: const Icon(Icons.lock_reset, color: Colors.white),
+                    label: const Text(
+                      "Cambiar Contraseña",
+                      style: TextStyle(color: Colors.white),
                     ),
-                    subtitle: const Text("Recordatorios de citas y ofertas"),
-                    activeThumbColor: const Color(0xFF0277BD),
-                    value: _notificaciones,
-                    onChanged: (val) => setState(() => _notificaciones = val),
-                  ),
-                  // Eliminamos el Divider y el SwitchListTile de biometría aquí
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            if (_isEditing)
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() => _isEditing = false);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("¡Cambios guardados correctamente!"),
-                        backgroundColor: Colors.green,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0277BD),
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0277BD),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
-                  child: const Text(
-                    "Guardar Cambios",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 20),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.lock_reset, color: Colors.grey),
-              label: const Text(
-                "Cambiar Contraseña",
-                style: TextStyle(color: Colors.grey),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -223,30 +402,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String label,
     TextEditingController controller,
     IconData icon,
+    bool isFieldEnabled,
   ) {
     return TextField(
       controller: controller,
-      enabled: _isEditing,
+      enabled: isFieldEnabled,
       style: TextStyle(
-        color: _isEditing ? Colors.black87 : Colors.grey[700],
+        color: isFieldEnabled ? Colors.black87 : Colors.grey[600],
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
           icon,
-          color: _isEditing ? const Color(0xFF0277BD) : Colors.grey,
+          color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: BorderSide.none,
         ),
         filled: true,
-        fillColor: _isEditing ? const Color(0xFFE1F5FE) : Colors.grey[100],
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 16,
-        ),
+        fillColor: isFieldEnabled ? Colors.white : Colors.grey[300],
       ),
     );
   }

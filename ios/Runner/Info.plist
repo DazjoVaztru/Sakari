@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<key>NSCameraUsageDescription</key>
+    <string>DentalConnect necesita acceso a tu cámara para actualizar tu foto de perfil.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>DentalConnect necesita acceso a tu galería para que elijas una foto de perfil.</string>
+	
 </dict>
 </plist>

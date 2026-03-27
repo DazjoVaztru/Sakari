@@ -1,39 +1,38 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/doctor_model.dart';
+import 'auth_service.dart'; // Para usar la baseUrl
 
 class DoctorService {
-  static const String baseUrl = 'http://10.0.2.2:4000/api';
-
-  static Future<DoctorModel?> obtenerPerfilDoctor(int idDoctor) async {
+  // --- OBTENER LISTA DE DOCTORES ---
+  // Ahora devolvemos una List<Doctor> muy limpia y tipada
+  static Future<List<Doctor>> getDoctores() async {
     try {
-      /* // === CÓDIGO REAL (Descomentar cuando el equipo haga el endpoint GET) ===
-      final response = await http.get(Uri.parse('$baseUrl/doctores/$idDoctor'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return DoctorModel.fromJson(data);
-      }
-      return null;
-      */
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
 
-      // === SIMULADOR TEMPORAL ===
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Retornamos los datos desde aquí para que tu pantalla los pinte dinámicamente
-      return DoctorModel(
-        id: idDoctor,
-        nombreCompleto: "Dr. Marco Osorio",
-        especialidad: "Cirujano Dentista - Ortodoncia",
-        cedula: "12345678",
-        telefono: "+522381234567", // Aquí ponemos el número de la clínica
-        sobreMi:
-            "Apasionado por crear sonrisas perfectas. Me especializo en tratamientos indoloros y estética dental avanzada. Mi objetivo es que pierdas el miedo al dentista.",
-        anosExperiencia: "15+",
-        calificacion: "4.9",
-        pacientesAtendidos: "1k+",
-        imagenUrl:
-            "https://img.freepik.com/foto-gratis/doctor-sonriendo-con-estetoscopio_1154-36.jpg",
+      final response = await http.get(
+        Uri.parse('${AuthService.baseUrl}/paciente/doctores'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decoded = jsonDecode(response.body);
+        if (decoded['success'] == true) {
+          // Convertimos la lista JSON a una lista de objetos Doctor
+          List<dynamic> doctoresJson = decoded['doctores'];
+          return doctoresJson.map((json) => Doctor.fromJson(json)).toList();
+        }
+      }
+      return []; // Si no hay éxito, regresamos una lista vacía
     } catch (e) {
-      return null;
+      print('Error al obtener doctores: $e');
+      return [];
     }
   }
 }
