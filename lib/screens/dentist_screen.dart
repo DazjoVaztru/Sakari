@@ -11,7 +11,6 @@ class DentistScreen extends StatefulWidget {
 }
 
 class _DentistScreenState extends State<DentistScreen> {
-  // Utilizamos nuestra clase Doctor
   Doctor? doctor;
   bool isLoading = true;
 
@@ -22,12 +21,10 @@ class _DentistScreenState extends State<DentistScreen> {
   }
 
   Future<void> _cargarDoctor() async {
-    // Traemos la lista de doctores de la clínica desde la SaaS
     final doctores = await DoctorService.getDoctores();
 
     if (mounted) {
       setState(() {
-        // Tomamos el primer doctor de la lista (o null si la clínica no tiene doctores)
         doctor = doctores.isNotEmpty ? doctores.first : null;
         isLoading = false;
       });
@@ -35,12 +32,10 @@ class _DentistScreenState extends State<DentistScreen> {
   }
 
   Future<void> _abrirWhatsApp(BuildContext context, String telefono) async {
-    // Limpiamos espacios en blanco del número
     String celLimpio = telefono.replaceAll(' ', '');
     const String mensaje =
         'Hola, me comunico desde la app DentalConnect para una consulta.';
 
-    // Formato universal de WhatsApp
     final Uri url = Uri.parse(
       'https://wa.me/$celLimpio?text=${Uri.encodeComponent(mensaje)}',
     );
@@ -145,23 +140,31 @@ class _DentistScreenState extends State<DentistScreen> {
                         : null,
                   ),
                   const SizedBox(height: 15),
-                  // Nombre del doctor
-                  Text(
-                    doctor!.nombreCompleto,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  // Nombre del doctor (CENTRADOS)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      doctor!.nombreCompleto,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 5),
-                  // Especialidad
-                  Text(
-                    doctor!.especialidad,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.blue[100],
-                      fontWeight: FontWeight.w500,
+                  // Especialidad (CENTRADOS)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      doctor!.especialidad,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.blue[100],
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
