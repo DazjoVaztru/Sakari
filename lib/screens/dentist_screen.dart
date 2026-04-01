@@ -36,13 +36,21 @@ class _DentistScreenState extends State<DentistScreen> {
     const String mensaje =
         'Hola, me comunico desde la app DentalConnect para una consulta.';
 
-    final Uri url = Uri.parse(
-      'https://wa.me/$celLimpio?text=${Uri.encodeComponent(mensaje)}',
+    final Uri whatsappUrl = Uri.parse(
+      'whatsapp://send?phone=$celLimpio&text=${Uri.encodeComponent(mensaje)}',
     );
 
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw Exception();
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl);
+      } else {
+        // Fallback a URL web
+        final Uri webUrl = Uri.parse(
+          'https://wa.me/$celLimpio?text=${Uri.encodeComponent(mensaje)}',
+        );
+        if (!await launchUrl(webUrl, mode: LaunchMode.externalApplication)) {
+          throw Exception();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -166,6 +174,23 @@ class _DentistScreenState extends State<DentistScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Teléfono
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.phone, color: Colors.white, size: 18),
+                      const SizedBox(width: 5),
+                      Text(
+                        doctor!.telefono,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
 
