@@ -14,18 +14,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
   bool _isLoading = true;
 
-  // Controladores de campos NO editables
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-
-  // NUEVO: UN SOLO CONTROLADOR PARA LA DIRECCIÓN
   final TextEditingController _direccionController = TextEditingController();
-
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
-
   String? _fotoPerfilUrl;
   File? _imagenLocalSeleccionada;
   final ImagePicker _picker = ImagePicker();
@@ -36,7 +31,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cargarDatosPaciente();
   }
 
-  // --- CARGAR DATOS REALES ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -46,10 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _nameController.text = paciente['nombre_completo'] ?? '';
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
-
-        // Asignamos directamente la dirección al controlador único
         _direccionController.text = paciente['direccion'] ?? '';
-
         _fotoPerfilUrl = paciente['foto_perfil'];
         _isLoading = false;
       });
@@ -63,13 +54,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- GUARDAR DIRECCIÓN ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
-    // Enviamos el campo único exactamente como lo espera Laravel
     final data = {'direccion': _direccionController.text};
-
     final response = await AuthService.updateProfile(data);
 
     setState(() {
@@ -84,7 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- FOTO DE PERFIL ---
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
       context: context,
@@ -186,43 +173,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _mostrarDialogoPassword() {
+    // Variables para controlar la visibilidad
+    bool isCurrentPasswordVisible = false;
+    bool isNewPasswordVisible = false;
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Cambiar Contraseña'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _currentPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña Actual',
-                ),
+        // Usamos StatefulBuilder para manejar el estado local del diálogo
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Cambiar Contraseña'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Campo: Contraseña Actual
+                  TextField(
+                    controller: _currentPasswordController,
+                    obscureText:
+                        !isCurrentPasswordVisible, // Controla si se oculta o no
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña Actual',
+                      // Icono de visibilidad (ojito)
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          isCurrentPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: const Color(0xFF0277BD),
+                        ),
+                        onPressed: () {
+                          // Actualizamos el estado local del diálogo
+                          setStateDialog(() {
+                            isCurrentPasswordVisible =
+                                !isCurrentPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10), // Pequeño espacio
+                  // Campo: Nueva Contraseña
+                  TextField(
+                    controller: _newPasswordController,
+                    obscureText:
+                        !isNewPasswordVisible, // Controla si se oculta o no
+                    decoration: InputDecoration(
+                      labelText: 'Nueva Contraseña',
+                      // Icono de visibilidad (ojito)
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          isNewPasswordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: const Color(0xFF0277BD),
+                        ),
+                        onPressed: () {
+                          // Actualizamos el estado local del diálogo
+                          setStateDialog(() {
+                            isNewPasswordVisible = !isNewPasswordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              TextField(
-                controller: _newPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Nueva Contraseña',
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    // Limpiamos los controladores al cancelar
+                    _currentPasswordController.clear();
+                    _newPasswordController.clear();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancelar'),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _cambiarPassword();
-              },
-              child: const Text('Actualizar'),
-            ),
-          ],
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _cambiarPassword();
+                  },
+                  child: const Text('Actualizar'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
