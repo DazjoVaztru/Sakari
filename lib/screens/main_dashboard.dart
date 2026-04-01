@@ -34,6 +34,7 @@ class _MainDashboardState extends State<MainDashboard> {
   String miToken = "";
   String nombrePaciente = "Cargando...";
   String correoPaciente = "Cargando...";
+  String fotoPerfilUrl = ""; // NUEVO: Variable para la foto de perfil
   String direccionClinica = 'Centro, Tehuacán, Puebla'; // Dirección por defecto
 
   @override
@@ -46,9 +47,10 @@ class _MainDashboardState extends State<MainDashboard> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       miToken = prefs.getString('token') ?? "";
-      // Leemos el nombre y correo (Asegúrate de que tu login los guarde con estas llaves)
+      // Leemos el nombre, correo y foto
       nombrePaciente = prefs.getString('nombre') ?? "Paciente";
       correoPaciente = prefs.getString('email') ?? "paciente@sakary.com";
+      fotoPerfilUrl = prefs.getString('foto_perfil') ?? ""; // Obtenemos la foto
     });
 
     if (miToken.isNotEmpty) {
@@ -63,7 +65,6 @@ class _MainDashboardState extends State<MainDashboard> {
     final data = await CitasService.obtenerDiasBloqueados(miToken);
     if (mounted) {
       setState(() {
-        // 👇 AÑADIMOS List<String>.from y List<int>.from PARA EVITAR EL ERROR 👇
         _diasBloqueados = List<String>.from(data['fechas'] ?? []);
         _diasSemanaCerrados = List<int>.from(data['dias_semana'] ?? []);
       });
@@ -71,7 +72,7 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _cargarCitaDesdeBD() async {
-    final citas = await CitasService.obtenerProximasCitas(miToken); 
+    final citas = await CitasService.obtenerProximasCitas(miToken);
     if (mounted) {
       setState(() {
         final ahora = DateTime.now();
@@ -82,14 +83,16 @@ class _MainDashboardState extends State<MainDashboard> {
         }).toList();
 
         // 2. Ordenamos por fecha para que la más cercana quede al principio
-        citasFiltradas.sort((a, b) => a.fechaHoraInicio.compareTo(b.fechaHoraInicio));
+        citasFiltradas.sort(
+          (a, b) => a.fechaHoraInicio.compareTo(b.fechaHoraInicio),
+        );
 
         // 3. Tomamos SOLO la primera cita (la más próxima) sin importar cuándo sea
         if (citasFiltradas.isNotEmpty) {
-          citasProximas = [citasFiltradas.first]; 
+          citasProximas = [citasFiltradas.first];
         } else {
           // Si realmente no tiene ninguna cita a futuro, la dejamos vacía
-          citasProximas = []; 
+          citasProximas = [];
         }
 
         isLoadingCita = false;
@@ -112,15 +115,12 @@ class _MainDashboardState extends State<MainDashboard> {
 
     if (mounted) {
       setState(() {
-        // Si el servicio logra descargar la dirección, la pone.
-        // Si devuelve null, pone por defecto la dirección principal del SaaS.
         direccionClinica = clinica?.direccion ?? 'Centro, Tehuacán, Puebla';
       });
     }
   }
 
   Future<void> _abrirGoogleMaps() async {
-    // Usamos la dirección dinámica obtenida del SaaS y el formato correcto de Google Maps
     final String urlCodificada = Uri.encodeFull(
       'https://www.google.com/maps/search/?api=1&query=$direccionClinica',
     );
@@ -143,6 +143,17 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    // --- LÓGICA PARA RENDERIZADO CONDICIONAL DE BOTONES (TU IDEA) ---
+    final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
+    final bool tieneHigiene =
+        citaPrimera != null &&
+        citaPrimera.tipsHigiene.isNotEmpty &&
+        citaPrimera.tipsHigiene.startsWith('http');
+    final bool tieneCuidados =
+        citaPrimera != null &&
+        citaPrimera.cuidados.isNotEmpty &&
+        citaPrimera.cuidados.startsWith('http');
+
     return Scaffold(
       backgroundColor: const Color(0xFFE1F5FE),
       appBar: AppBar(
@@ -151,18 +162,23 @@ class _MainDashboardState extends State<MainDashboard> {
         actions: [
           GestureDetector(
             onTap: () {
-              // Navegamos a la pantalla de configuración
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
-            child: const Padding(
-              padding: EdgeInsets.only(right: 16.0),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
-                backgroundColor: Color(0xFF0277BD),
+                backgroundColor: const Color(0xFF0277BD),
                 radius: 18,
-                child: Icon(Icons.person, color: Colors.white, size: 20),
+                // NUEVO: Agregamos la foto de perfil en el AppBar
+                backgroundImage: fotoPerfilUrl.isNotEmpty
+                    ? NetworkImage(fotoPerfilUrl)
+                    : null,
+                child: fotoPerfilUrl.isEmpty
+                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                    : null,
               ),
             ),
           ),
@@ -182,9 +198,19 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               ),
               accountEmail: Text(correoPaciente),
-              currentAccountPicture: const CircleAvatar(
+              currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 50, color: Color(0xFF0277BD)),
+                // NUEVO: Agregamos la foto de perfil en el menú lateral
+                backgroundImage: fotoPerfilUrl.isNotEmpty
+                    ? NetworkImage(fotoPerfilUrl)
+                    : null,
+                child: fotoPerfilUrl.isEmpty
+                    ? const Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Color(0xFF0277BD),
+                      )
+                    : null,
               ),
             ),
             Expanded(
@@ -290,7 +316,7 @@ class _MainDashboardState extends State<MainDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Hola, ${nombrePaciente.split(' ')[0]} 👋", // split para mostrar solo el primer nombre
+              "Hola, ${nombrePaciente.split(' ')[0]} 👋",
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
@@ -303,13 +329,10 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             const SizedBox(height: 20),
 
-            // --- BANNER DE PROMOCIONES (DINÁMICO) ---
-            // --- CARRUSEL DE PROMOCIONES (DINÁMICO) ---
-            // --- CARRUSEL DE PROMOCIONES (DINÁMICO) ---
             if (isLoadingPromo)
               Container(
                 width: double.infinity,
-                height: 220, // 👈 CAMBIO 1: Altura aumentada a 220
+                height: 220,
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(20),
@@ -320,26 +343,22 @@ class _MainDashboardState extends State<MainDashboard> {
               )
             else if (listaPromociones.isNotEmpty)
               SizedBox(
-                height: 220, // 👈 CAMBIO 2: Altura aumentada a 220
+                height: 220,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: listaPromociones.length,
                   itemBuilder: (context, index) {
                     final promo = listaPromociones[index];
                     return Container(
-                      // Restamos 40 (20 de cada lado) para que quede exactamente alineado con la tarjeta de abajo
                       width: MediaQuery.of(context).size.width - 40,
-                      margin: const EdgeInsets.only(
-                        right: 20,
-                      ), // Un margen para separar si hay más de 1 promo
+                      margin: const EdgeInsets.only(right: 20),
                       decoration: BoxDecoration(
-                        // 👇 NUEVO: Si hay imagen, la pone de fondo. Si no, usa el color azul.
                         image: promo.imagenUrl.isNotEmpty
                             ? DecorationImage(
                                 image: NetworkImage(promo.imagenUrl),
                                 fit: BoxFit.cover,
                                 colorFilter: ColorFilter.mode(
-                                  Colors.black.withOpacity(0.5), // Oscurece la foto para que el texto se lea
+                                  Colors.black.withOpacity(0.5),
                                   BlendMode.darken,
                                 ),
                               )
@@ -366,15 +385,12 @@ class _MainDashboardState extends State<MainDashboard> {
                             right: -20,
                             top: -20,
                             child: CircleAvatar(
-                              radius:
-                                  80, // 👈 Se hizo más grande el círculo decorativo para llenar espacio
+                              radius: 80,
                               backgroundColor: Colors.white.withOpacity(0.1),
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(
-                              25.0,
-                            ), // 👈 Más espacio interior
+                            padding: const EdgeInsets.all(25.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -383,8 +399,7 @@ class _MainDashboardState extends State<MainDashboard> {
                                   promo.titulo,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize:
-                                        22, // 👈 Título un poco más grande
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -393,10 +408,9 @@ class _MainDashboardState extends State<MainDashboard> {
                                   promo.descripcion,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize:
-                                        15, // 👈 Descripción un poco más grande
+                                    fontSize: 15,
                                   ),
-                                  maxLines: 3, // 👈 Permitir hasta 3 líneas
+                                  maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ],
@@ -409,10 +423,8 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               ),
 
-            // 👇 CAMBIO 3: EL ESPACIO DE RESPIRACIÓN ANTES DEL SIGUIENTE TÍTULO 👇
             const SizedBox(height: 35),
 
-            // --- TARJETA DE CITA (DINÁMICA) ---
             const Text(
               "Tu Próxima Cita",
               style: TextStyle(
@@ -423,8 +435,6 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             const SizedBox(height: 10),
 
-            // Si está cargando, mostramos el circulito azul
-            // --- TARJETA DE CITA ---
             if (isLoadingCita)
               const Center(
                 child: Padding(
@@ -433,7 +443,6 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               )
             else if (citasProximas.isEmpty)
-              // 👇 AQUÍ PINTAMOS QUE NO HAY CITA 👇
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -470,7 +479,6 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               )
             else
-              // 👇 MOSTRAMOS TODAS LAS CITAS DINÁMICAMENTE 👇
               ...citasProximas.map((cita) {
                 final DateTime fechaCita = cita.fechaHoraInicio;
                 final String estadoCita = cita.estadoCita;
@@ -491,12 +499,10 @@ class _MainDashboardState extends State<MainDashboard> {
                   ),
                   child: Column(
                     children: [
-                      // --- FILA 1: FECHA Y ETIQUETA DE ESTADO ---
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Bloque de la fecha (Izquierda)
                           Expanded(
                             child: Row(
                               children: [
@@ -525,15 +531,15 @@ class _MainDashboardState extends State<MainDashboard> {
                                     ),
                                     Text(
                                       "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
-                                      style: const TextStyle(color: Colors.grey),
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-
-                          // 👇 Bloque de la Etiqueta de Estado (Derecha) 👇
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -564,13 +570,10 @@ class _MainDashboardState extends State<MainDashboard> {
                           ),
                         ],
                       ),
-
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 15),
                         child: Divider(color: Color(0xFFEEEEEE), thickness: 1),
                       ),
-
-                      // --- FILA 2: EL TRATAMIENTO ---
                       Row(
                         children: [
                           Container(
@@ -610,8 +613,6 @@ class _MainDashboardState extends State<MainDashboard> {
                           ),
                         ],
                       ),
-
-                      // Ocultamos ambos botones si la cita ya está confirmada
                       if (cita.estadoCita.toLowerCase() != 'confirmada') ...[
                         const SizedBox(height: 25),
                         Row(
@@ -628,7 +629,6 @@ class _MainDashboardState extends State<MainDashboard> {
                             Expanded(
                               child: _buildActionButton(
                                 "Reagendar",
-                                // Solo bloqueamos visualmente si ya fue reagendada al menos una vez
                                 cita.haSidoReagendada
                                     ? Colors.grey.shade400
                                     : Colors.grey,
@@ -652,7 +652,6 @@ class _MainDashboardState extends State<MainDashboard> {
 
             const SizedBox(height: 35),
 
-            // --- ACCIONES RÁPIDAS (HASTA ABAJO) ---
             const Text(
               "Acciones Rápidas",
               style: TextStyle(
@@ -663,33 +662,39 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             const SizedBox(height: 20),
 
+            // NUEVO: Implementación de tu idea (Renderizado Condicional)
             Row(
-              mainAxisAlignment: MainAxisAlignment
-                  .spaceAround, // Separa los botones equitativamente
+              // Usamos center por si solo hay un botón, quede bien acomodado
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (tieneHigiene) ...[
+                  _buildQuickActionItem(
+                    icon: Icons.clean_hands,
+                    label: "Higiene",
+                    onTap: () => _mostrarRecomendacionesHigiene(context),
+                  ),
+                  const SizedBox(width: 30),
+                ],
+                if (tieneCuidados) ...[
+                  _buildQuickActionItem(
+                    icon: Icons.health_and_safety,
+                    label: "Cuidados",
+                    onTap: () => _mostrarCuidadosPostTratamiento(context),
+                  ),
+                  const SizedBox(width: 30),
+                ],
+                // El de ubicación SIEMPRE se muestra
                 _buildQuickActionItem(
-                  icon: Icons.clean_hands, // Ícono de lavado/higiene
-                  label: "Higiene",
-                  onTap: () => _mostrarRecomendacionesHigiene(context),
-                ),
-                _buildQuickActionItem(
-                  icon: Icons.health_and_safety, // Ícono de escudo médico
-                  label: "Cuidados",
-                  onTap: () => _mostrarCuidadosPostTratamiento(context),
-                ),
-                _buildQuickActionItem(
-                  icon: Icons.map, // Ícono de mapa
+                  icon: Icons.map,
                   label: "Ubicación",
                   onTap: _abrirGoogleMaps,
                 ),
               ],
             ),
 
-            const SizedBox(
-              height: 40,
-            ), // Un buen espacio de respiración al final de la pantalla
-          ], // <-- Cierre del Column principal
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
@@ -713,8 +718,7 @@ class _MainDashboardState extends State<MainDashboard> {
             backgroundColor: Colors.green,
           ),
         );
-        // Volvemos a descargar la lista para que se actualicen los colores
-        _cargarCitaDesdeBD(); 
+        _cargarCitaDesdeBD();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -729,9 +733,16 @@ class _MainDashboardState extends State<MainDashboard> {
   void _accionReagendar(CitaModel citaAReagendar) {
     final BuildContext contextoPrincipal = context;
 
-    // 🔥 BUSCADOR INTELIGENTE DEL PRIMER DÍA LIBRE 🔥
+    // NUEVO: Bloquear lógica para la fecha actual de la cita
+    DateTime fechaCitaActual = DateTime(
+      citaAReagendar.fechaHoraInicio.year,
+      citaAReagendar.fechaHoraInicio.month,
+      citaAReagendar.fechaHoraInicio.day,
+    );
+
     DateTime buscarPrimerDiaLibre() {
-      DateTime diaPrueba = DateTime.now().add(const Duration(days: 1));
+      // Comenzamos a buscar a partir del día SIGUIENTE a la cita actual
+      DateTime diaPrueba = fechaCitaActual.add(const Duration(days: 1));
       for (int i = 0; i < 60; i++) {
         String fechaStr =
             "${diaPrueba.year}-${diaPrueba.month.toString().padLeft(2, '0')}-${diaPrueba.day.toString().padLeft(2, '0')}";
@@ -741,7 +752,7 @@ class _MainDashboardState extends State<MainDashboard> {
         }
         diaPrueba = diaPrueba.add(const Duration(days: 1));
       }
-      return DateTime.now().add(const Duration(days: 1));
+      return fechaCitaActual.add(const Duration(days: 1));
     }
 
     showModalBottomSheet(
@@ -749,7 +760,6 @@ class _MainDashboardState extends State<MainDashboard> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext ctx) {
-        // Inicializamos con el buscador mágico
         DateTime fechaTemp = buscarPrimerDiaLibre();
         int pasoActual = 1;
         String? horaSeleccionada;
@@ -812,7 +822,6 @@ class _MainDashboardState extends State<MainDashboard> {
                   ),
                   const SizedBox(height: 20),
 
-                  // --- PASO 1: CALENDARIO ---
                   if (pasoActual == 1) ...[
                     Expanded(
                       child: Container(
@@ -823,26 +832,38 @@ class _MainDashboardState extends State<MainDashboard> {
                         ),
                         child: CalendarDatePicker(
                           initialDate: fechaTemp,
-                          firstDate: DateTime.now(),
+                          // NUEVO: El calendario no permite ver/seleccionar fechas pasadas al día de hoy ni a la cita actual
+                          firstDate: DateTime.now().isAfter(fechaCitaActual)
+                              ? DateTime.now()
+                              : fechaCitaActual.add(const Duration(days: 1)),
                           lastDate: DateTime(2030),
-                          // 👇 ESTA ES LA MAGIA QUE BLOQUEA LOS DÍAS 👇
                           selectableDayPredicate: (DateTime day) {
+                            DateTime fechaEvaluar = DateTime(
+                              day.year,
+                              day.month,
+                              day.day,
+                            );
+
+                            // 1. NUEVO: Bloqueamos estrictamente el día de la cita original y anteriores
+                            if (!fechaEvaluar.isAfter(fechaCitaActual)) {
+                              return false;
+                            }
+
                             String fechaStr =
                                 "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
 
-                            // 1. Bloquea vacaciones o días feriados
+                            // 2. Bloquea vacaciones o días feriados
                             if (_diasBloqueados.contains(fechaStr)) {
                               return false;
                             }
 
-                            // 2. ✅ Bloquea los días de la semana que el SaaS configuró como cerrados (Ej: 5, 6, 7)
+                            // 3. Bloquea días cerrados de la clínica
                             if (_diasSemanaCerrados.contains(day.weekday)) {
                               return false;
                             }
 
-                            return true; // Día libre
+                            return true;
                           },
-                          // ☝️ FIN DE LA MAGIA ☝️
                           onDateChanged: (newDate) {
                             cargarHorarios(newDate);
                           },
@@ -858,7 +879,6 @@ class _MainDashboardState extends State<MainDashboard> {
                     ),
                   ],
 
-                  // --- PASO 2: HORARIOS ---
                   if (pasoActual == 2) ...[
                     Container(
                       width: double.infinity,
@@ -903,8 +923,6 @@ class _MainDashboardState extends State<MainDashboard> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 15),
-
-                    // --- MOSTRAR HORARIOS O CÍRCULO DE CARGA ---
                     if (isLoadingHorarios)
                       const Center(
                         child: Padding(
@@ -925,19 +943,13 @@ class _MainDashboardState extends State<MainDashboard> {
                         ),
                       )
                     else
-                      // --- HORARIOS DISPONIBLES (CON SCROLL) ---
                       Expanded(
-                        // 1. Ocupa el espacio dinámicamente sin empujar los botones
                         child: SingleChildScrollView(
-                          // 2. Permite hacer scroll hacia abajo
                           child: Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: 20.0,
-                            ), // Un poco de aire al final
+                            padding: const EdgeInsets.only(bottom: 20.0),
                             child: Wrap(
                               spacing: 10,
                               runSpacing: 10,
-                              // Dibujamos la lista de horarios usando tu widget personalizado
                               children: horariosDisponibles.map((hora) {
                                 return _buildTimeOption(
                                   hora,
@@ -967,7 +979,7 @@ class _MainDashboardState extends State<MainDashboard> {
                                 : () async {
                                     setModalState(
                                       () => isLoadingHorarios = true,
-                                    ); // Bloqueamos visualmente
+                                    );
 
                                     ScaffoldMessenger.of(
                                       contextoPrincipal,
@@ -980,7 +992,6 @@ class _MainDashboardState extends State<MainDashboard> {
                                       ),
                                     );
 
-                                    // 🔥 LLAMADA REAL AL BACKEND 🔥
                                     final Map<String, dynamic> resultado =
                                         await CitasService.reagendarCita(
                                           miToken,
@@ -990,7 +1001,7 @@ class _MainDashboardState extends State<MainDashboard> {
                                         );
 
                                     if (mounted) {
-                                      Navigator.pop(ctx); // Cerramos el modal
+                                      Navigator.pop(ctx);
 
                                       if (resultado['success'] == true) {
                                         ScaffoldMessenger.of(
@@ -1005,10 +1016,8 @@ class _MainDashboardState extends State<MainDashboard> {
                                             backgroundColor: Colors.green,
                                           ),
                                         );
-                                        // Recargamos los datos reales desde la BD
                                         _cargarCitaDesdeBD();
                                       } else {
-                                        // Mostramos el mensaje real de por qué falló (ej. Límite de reagendos en backend)
                                         ScaffoldMessenger.of(
                                           contextoPrincipal,
                                         ).showSnackBar(
@@ -1106,7 +1115,6 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   void _mostrarRecomendacionesHigiene(BuildContext context) async {
-    // Verificamos si la base de datos nos mandó un link de PDF válido
     final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
     if (citaPrimera != null &&
         citaPrimera.tipsHigiene.isNotEmpty &&
@@ -1126,31 +1134,10 @@ class _MainDashboardState extends State<MainDashboard> {
           );
         }
       }
-    } else {
-      // Si no hay PDF, mostramos el texto por defecto en un recuadro
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(
-            "🦷 Tips de Higiene",
-            style: TextStyle(color: Color(0xFF0277BD)),
-          ),
-          content: const Text(
-            "• Cepíllate 3 veces al día.\n• Usa hilo dental.\n• Cambia tu cepillo cada 3 meses.",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Entendido"),
-            ),
-          ],
-        ),
-      );
     }
   }
 
   void _mostrarCuidadosPostTratamiento(BuildContext context) async {
-    // Verificamos si la base de datos nos mandó un link de PDF válido
     final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
     if (citaPrimera != null &&
         citaPrimera.cuidados.isNotEmpty &&
@@ -1170,24 +1157,6 @@ class _MainDashboardState extends State<MainDashboard> {
           );
         }
       }
-    } else {
-      // Si no hay PDF, mostramos el texto por defecto
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(
-            "🩺 Cuidados",
-            style: TextStyle(color: Colors.teal),
-          ),
-          content: const Text("No ingerir alimentos sólidos por 4 horas."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Aceptar"),
-            ),
-          ],
-        ),
-      );
     }
   }
 
