@@ -611,14 +611,11 @@ class _MainDashboardState extends State<MainDashboard> {
                         ],
                       ),
 
-                      const SizedBox(height: 25),
-
-                      // Botones de Confirmar y Reagendar
-                      // Botones de Confirmar y Reagendar
-                      Row(
-                        children: [
-                          // 👇 MAGIA: Ocultamos el botón si la cita ya está confirmada
-                          if (cita.estadoCita.toLowerCase() != 'confirmada') ...[
+                      // Ocultamos ambos botones si la cita ya está confirmada
+                      if (cita.estadoCita.toLowerCase() != 'confirmada') ...[
+                        const SizedBox(height: 25),
+                        Row(
+                          children: [
                             Expanded(
                               child: _buildActionButton(
                                 "Confirmar",
@@ -628,27 +625,26 @@ class _MainDashboardState extends State<MainDashboard> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                          ],
-                          Expanded(
-                            child: _buildActionButton(
-                              "Reagendar",
-                              // Solo bloqueamos visualmente si ya fue reagendada al menos una vez
-                              cita.haSidoReagendada
-                                  ? Colors.grey.shade400
-                                  : Colors.grey,
-                              false,
-                              onTap: () {
-                                // 👇 Permitimos reagendar sin importar si está confirmada o pendiente
-                                if (cita.haSidoReagendada) {
-                                  _mostrarAlertaLimiteReagendos();
-                                } else {
-                                  _accionReagendar(cita);
-                                }
-                              },
+                            Expanded(
+                              child: _buildActionButton(
+                                "Reagendar",
+                                // Solo bloqueamos visualmente si ya fue reagendada al menos una vez
+                                cita.haSidoReagendada
+                                    ? Colors.grey.shade400
+                                    : Colors.grey,
+                                false,
+                                onTap: () {
+                                  if (cita.haSidoReagendada) {
+                                    _mostrarAlertaLimiteReagendos();
+                                  } else {
+                                    _accionReagendar(cita);
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 );
