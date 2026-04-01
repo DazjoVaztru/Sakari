@@ -141,12 +141,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- CONTRASEÑA ---
   Future<void> _cambiarPassword() async {
     if (_currentPasswordController.text.isEmpty ||
         _newPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Llena ambos campos de contraseña')),
+      );
+      return;
+    }
+
+    if (_currentPasswordController.text == _newPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'La nueva contraseña no puede ser igual a la actual ⚠️',
+          ),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -173,14 +184,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _mostrarDialogoPassword() {
-    // Variables para controlar la visibilidad
     bool isCurrentPasswordVisible = false;
     bool isNewPasswordVisible = false;
 
     showDialog(
       context: context,
       builder: (context) {
-        // Usamos StatefulBuilder para manejar el estado local del diálogo
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
