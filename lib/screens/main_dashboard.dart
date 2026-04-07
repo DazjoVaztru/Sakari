@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart'; // Importamos el Login para poder cerrar sesión
+import 'login_screen.dart';
 import 'clinic_screen.dart';
 import 'dentist_screen.dart';
 import 'treatment_screen.dart';
@@ -8,6 +8,7 @@ import 'settings_screen.dart';
 import '../models/cita_model.dart';
 import '../services/citas_service.dart';
 import '../services/clinica_service.dart';
+import '../services/auth_service.dart'; // <--- NUEVO IMPORT para el perfil
 import 'package:url_launcher/url_launcher.dart';
 import '../models/publicidad_model.dart';
 import '../services/publicidad_service.dart';
@@ -24,7 +25,7 @@ class _MainDashboardState extends State<MainDashboard> {
   // Variables de Estado
   bool tratamientoRealizado = true;
 
-  // Variables NUEVAS para la lista completa de citas
+  // Variables para la lista completa de citas
   List<CitaModel> citasProximas = [];
   bool isLoadingCita = true;
   List<PublicidadModel> listaPromociones = [];
@@ -34,7 +35,7 @@ class _MainDashboardState extends State<MainDashboard> {
   String miToken = "";
   String nombrePaciente = "Cargando...";
   String correoPaciente = "Cargando...";
-  String fotoPerfilUrl = ""; // NUEVO: Variable para la foto de perfil
+  String fotoPerfilUrl = ""; // <--- Aquí guardaremos la URL real
   String direccionClinica = 'Centro, Tehuacán, Puebla'; // Dirección por defecto
 
   @override
@@ -43,17 +44,28 @@ class _MainDashboardState extends State<MainDashboard> {
     _inicializarPantalla();
   }
 
+  // MODIFICADO: Ahora descarga los datos reales del perfil al iniciar
   Future<void> _inicializarPantalla() async {
     final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? "";
+
     setState(() {
-      miToken = prefs.getString('token') ?? "";
-      // Leemos el nombre, correo y foto
-      nombrePaciente = prefs.getString('nombre') ?? "Paciente";
-      correoPaciente = prefs.getString('email') ?? "paciente@sakary.com";
-      fotoPerfilUrl = prefs.getString('foto_perfil') ?? ""; // Obtenemos la foto
+      miToken = token;
     });
 
     if (miToken.isNotEmpty) {
+      // Cargamos el perfil real desde la API para asegurar que la foto aparezca
+      final response = await AuthService.getProfile();
+      if (mounted && response['success'] == true) {
+        final paciente = response['paciente'];
+        setState(() {
+          nombrePaciente = paciente['nombre_completo'] ?? "Paciente";
+          correoPaciente = paciente['email'] ?? "paciente@sakary.com";
+          fotoPerfilUrl =
+              paciente['foto_perfil'] ?? ""; // URL desde el servidor
+        });
+      }
+
       _cargarCitaDesdeBD();
       _cargarPromociones();
       _cargarDiasBloqueados();
@@ -143,7 +155,7 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // --- LÓGICA PARA RENDERIZADO CONDICIONAL DE BOTONES (TU IDEA) ---
+    // --- LÓGICA PARA RENDERIZADO CONDICIONAL DE BOTONES ---
     final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
     final bool tieneHigiene =
         citaPrimera != null &&
@@ -162,17 +174,17 @@ class _MainDashboardState extends State<MainDashboard> {
         actions: [
           GestureDetector(
             onTap: () {
+              // MEJORA: .then((_) => ...) recarga el Dashboard al volver de Settings
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
+              ).then((_) => _inicializarPantalla());
             },
             child: Padding(
               padding: const EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
                 backgroundColor: const Color(0xFF0277BD),
                 radius: 18,
-                // NUEVO: Agregamos la foto de perfil en el AppBar
                 backgroundImage: fotoPerfilUrl.isNotEmpty
                     ? NetworkImage(fotoPerfilUrl)
                     : null,
@@ -200,7 +212,6 @@ class _MainDashboardState extends State<MainDashboard> {
               accountEmail: Text(correoPaciente),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                // NUEVO: Agregamos la foto de perfil en el menú lateral
                 backgroundImage: fotoPerfilUrl.isNotEmpty
                     ? NetworkImage(fotoPerfilUrl)
                     : null,
@@ -284,7 +295,9 @@ class _MainDashboardState extends State<MainDashboard> {
                         MaterialPageRoute(
                           builder: (context) => const SettingsScreen(),
                         ),
-                      );
+                      ).then(
+                        (_) => _inicializarPantalla(),
+                      ); // Refresca desde el Drawer
                     },
                   ),
                 ],
@@ -662,9 +675,8 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             const SizedBox(height: 20),
 
-            // NUEVO: Implementación de tu idea (Renderizado Condicional)
+            // Renderizado Condicional de Botones
             Row(
-              // Usamos center por si solo hay un botón, quede bien acomodado
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -733,7 +745,7 @@ class _MainDashboardState extends State<MainDashboard> {
   void _accionReagendar(CitaModel citaAReagendar) {
     final BuildContext contextoPrincipal = context;
 
-    // NUEVO: Bloquear lógica para la fecha actual de la cita
+    // Bloquear lógica para la fecha actual de la cita
     DateTime fechaCitaActual = DateTime(
       citaAReagendar.fechaHoraInicio.year,
       citaAReagendar.fechaHoraInicio.month,
@@ -741,7 +753,6 @@ class _MainDashboardState extends State<MainDashboard> {
     );
 
     DateTime buscarPrimerDiaLibre() {
-      // Comenzamos a buscar a partir del día SIGUIENTE a la cita actual
       DateTime diaPrueba = fechaCitaActual.add(const Duration(days: 1));
       for (int i = 0; i < 60; i++) {
         String fechaStr =
@@ -832,7 +843,6 @@ class _MainDashboardState extends State<MainDashboard> {
                         ),
                         child: CalendarDatePicker(
                           initialDate: fechaTemp,
-                          // NUEVO: El calendario no permite ver/seleccionar fechas pasadas al día de hoy ni a la cita actual
                           firstDate: DateTime.now().isAfter(fechaCitaActual)
                               ? DateTime.now()
                               : fechaCitaActual.add(const Duration(days: 1)),
@@ -844,7 +854,6 @@ class _MainDashboardState extends State<MainDashboard> {
                               day.day,
                             );
 
-                            // 1. NUEVO: Bloqueamos estrictamente el día de la cita original y anteriores
                             if (!fechaEvaluar.isAfter(fechaCitaActual)) {
                               return false;
                             }
@@ -852,12 +861,10 @@ class _MainDashboardState extends State<MainDashboard> {
                             String fechaStr =
                                 "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
 
-                            // 2. Bloquea vacaciones o días feriados
                             if (_diasBloqueados.contains(fechaStr)) {
                               return false;
                             }
 
-                            // 3. Bloquea días cerrados de la clínica
                             if (_diasSemanaCerrados.contains(day.weekday)) {
                               return false;
                             }
