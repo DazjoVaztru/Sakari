@@ -68,6 +68,15 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: const Color(0xFF014F7E),
+        // ACCESIBILIDAD: Botón de regresar con etiqueta clara
+        leading: Semantics(
+          button: true,
+          label: 'Regresar a inicio de sesión',
+          child: IconButton(
+            icon: const ExcludeSemantics(child: Icon(Icons.arrow_back)),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -78,10 +87,13 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                 context,
                 title: "Recuperar Contraseña",
                 children: [
-                  const Text(
-                    "Ingresa tu correo para restablecer tu acceso.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  // ACCESIBILIDAD: Agrupamos para lectura corrida
+                  MergeSemantics(
+                    child: const Text(
+                      "Ingresa tu correo para restablecer tu acceso.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -96,13 +108,23 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
                   // Si está cargando mostramos el círculo, si no, el botón normal
                   _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Color(0xFF0277BD),
+                      ? Semantics(
+                          // ACCESIBILIDAD: Avisar al usuario ciego que la app está trabajando
+                          label: 'Enviando instrucciones de recuperación...',
+                          child: const CircularProgressIndicator(
+                            color: Color(0xFF0277BD),
+                          ),
                         )
-                      : buildPrimaryButton(
-                          context,
-                          "Enviar Instrucciones",
-                          _recuperarPassword,
+                      : Semantics(
+                          // ACCESIBILIDAD: Explicarle al usuario qué hará este botón
+                          button: true,
+                          hint:
+                              'Enviar un enlace de recuperación a tu correo electrónico',
+                          child: buildPrimaryButton(
+                            context,
+                            "Enviar Instrucciones",
+                            _recuperarPassword,
+                          ),
                         ),
                 ],
               ),

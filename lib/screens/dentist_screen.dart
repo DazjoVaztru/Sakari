@@ -79,24 +79,46 @@ class _DentistScreenState extends State<DentistScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // ACCESIBILIDAD: Etiqueta para el estado de carga
+      return Scaffold(
+        body: Semantics(
+          label: 'Cargando el perfil de tu dentista',
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     if (doctor == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text(
-            "Perfil del Dentista",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          // ACCESIBILIDAD: Título marcado como header
+          title: Semantics(
+            header: true,
+            child: const Text(
+              "Perfil del Dentista",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
           ),
           backgroundColor: const Color(0xFF0277BD),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+          leading: Semantics(
+            button: true,
+            label: 'Regresar',
+            child: IconButton(
+              icon: const ExcludeSemantics(
+                child: Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
         ),
-        body: const Center(
-          child: Text("Aún no hay dentistas asignados a tu clínica."),
+        body: Semantics(
+          label: 'Aún no hay dentistas asignados a tu clínica.',
+          child: const Center(
+            child: Text("Aún no hay dentistas asignados a tu clínica."),
+          ),
         ),
       );
     }
@@ -104,99 +126,120 @@ class _DentistScreenState extends State<DentistScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Fondo claro
       appBar: AppBar(
-        title: const Text(
-          "Mi Dentista",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        title: Semantics(
+          header: true,
+          child: const Text(
+            "Mi Dentista",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
         backgroundColor: const Color(0xFF0277BD),
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        leading: Semantics(
+          button: true,
+          label: 'Regresar',
+          child: IconButton(
+            icon: const ExcludeSemantics(
+              child: Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Sección superior con la foto e info principal
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0277BD),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
+            // ACCESIBILIDAD: Agrupamos toda la información principal del doctor
+            MergeSemantics(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0277BD),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  // Foto del doctor
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.white,
-                    backgroundImage:
-                        (doctor!.fotoPerfilUrl != null &&
-                            doctor!.fotoPerfilUrl!.isNotEmpty)
-                        ? NetworkImage(doctor!.fotoPerfilUrl!)
-                        : null,
-                    child:
-                        (doctor!.fotoPerfilUrl == null ||
-                            doctor!.fotoPerfilUrl!.isEmpty)
-                        ? const Icon(Icons.person, size: 60, color: Colors.grey)
-                        : null,
-                  ),
-                  const SizedBox(height: 15),
-                  // Nombre del doctor (CENTRADOS)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      doctor!.nombreCompleto,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // Foto del doctor
+                    ExcludeSemantics(
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.white,
+                        backgroundImage:
+                            (doctor!.fotoPerfilUrl != null &&
+                                doctor!.fotoPerfilUrl!.isNotEmpty)
+                            ? NetworkImage(doctor!.fotoPerfilUrl!)
+                            : null,
+                        child:
+                            (doctor!.fotoPerfilUrl == null ||
+                                doctor!.fotoPerfilUrl!.isEmpty)
+                            ? const Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.grey,
+                              )
+                            : null,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  // Especialidad (CENTRADOS)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      doctor!.especialidad,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.blue[100],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Teléfono
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.phone, color: Colors.white, size: 18),
-                      const SizedBox(width: 5),
-                      Text(
-                        doctor!.telefono,
+                    const SizedBox(height: 15),
+                    // Nombre del doctor
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        doctor!.nombreCompleto,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                           color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    // Especialidad
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        doctor!.especialidad,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.blue[100],
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- SECCIÓN DE STATS REMOVIDA A PETICIÓN DEL EQUIPO ---
-                  const SizedBox(height: 30),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Teléfono
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const ExcludeSemantics(
+                          child: Icon(
+                            Icons.phone,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          doctor!.telefono,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -207,39 +250,58 @@ class _DentistScreenState extends State<DentistScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _abrirWhatsApp(context, doctor!.telefono),
-                      icon: const Icon(Icons.message, color: Colors.white),
-                      label: const Text(
-                        "Mensaje",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(
-                          0xFF25D366,
-                        ), // Color WhatsApp
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                    // ACCESIBILIDAD: Semántica explícita para WhatsApp
+                    child: Semantics(
+                      button: true,
+                      hint: 'Enviar mensaje de WhatsApp al doctor',
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            _abrirWhatsApp(context, doctor!.telefono),
+                        icon: const ExcludeSemantics(
+                          child: Icon(Icons.message, color: Colors.white),
+                        ),
+                        label: const Text(
+                          "Mensaje",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(
+                            0xFF25D366,
+                          ), // Color WhatsApp
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          // ACCESIBILIDAD: Área táctil mínima
+                          minimumSize: const Size(88, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _llamarDoctor(context, doctor!.telefono),
-                      icon: const Icon(Icons.call, color: Colors.white),
-                      label: const Text(
-                        "Llamar",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0277BD),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                    // ACCESIBILIDAD: Semántica explícita para Llamada
+                    child: Semantics(
+                      button: true,
+                      hint: 'Llamar por teléfono al doctor',
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            _llamarDoctor(context, doctor!.telefono),
+                        icon: const ExcludeSemantics(
+                          child: Icon(Icons.call, color: Colors.white),
+                        ),
+                        label: const Text(
+                          "Llamar",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0277BD),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          // ACCESIBILIDAD: Área táctil mínima
+                          minimumSize: const Size(88, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
                         ),
                       ),
                     ),
@@ -250,38 +312,44 @@ class _DentistScreenState extends State<DentistScreen> {
             const SizedBox(height: 30),
 
             // Sección "Sobre mí"
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 5,
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Sobre mí",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+            // ACCESIBILIDAD: Agrupamos el título y la descripción
+            MergeSemantics(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 5,
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      doctor!.sobreMi,
-                      style: const TextStyle(color: Colors.grey, height: 1.5),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Semantics(
+                        header: true,
+                        child: const Text(
+                          "Sobre mí",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        doctor!.sobreMi,
+                        style: const TextStyle(color: Colors.grey, height: 1.5),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

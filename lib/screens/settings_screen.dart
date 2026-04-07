@@ -14,13 +14,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
   bool _isLoading = true;
 
+  // Controladores de campos NO editables
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+
+  // NUEVO: UN SOLO CONTROLADOR PARA LA DIRECCIÓN
   final TextEditingController _direccionController = TextEditingController();
+
   final TextEditingController _currentPasswordController =
       TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
+
   String? _fotoPerfilUrl;
   File? _imagenLocalSeleccionada;
   final ImagePicker _picker = ImagePicker();
@@ -31,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cargarDatosPaciente();
   }
 
+  // --- CARGAR DATOS REALES ---
   Future<void> _cargarDatosPaciente() async {
     final response = await AuthService.getProfile();
 
@@ -40,7 +46,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _nameController.text = paciente['nombre_completo'] ?? '';
         _emailController.text = paciente['email'] ?? '';
         _phoneController.text = paciente['telefono'] ?? '';
+
+        // Asignamos directamente la dirección al controlador único
         _direccionController.text = paciente['direccion'] ?? '';
+
         _fotoPerfilUrl = paciente['foto_perfil'];
         _isLoading = false;
       });
@@ -54,10 +63,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- GUARDAR DIRECCIÓN ---
   Future<void> _guardarDatosPersonales() async {
     setState(() => _isLoading = true);
 
+    // Enviamos el campo único exactamente como lo espera Laravel
     final data = {'direccion': _direccionController.text};
+
     final response = await AuthService.updateProfile(data);
 
     setState(() {
@@ -72,6 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- FOTO DE PERFIL ---
   void _mostrarOpcionesDeFoto() {
     showModalBottomSheet(
       context: context,
@@ -81,15 +94,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                "Actualizar Foto de Perfil",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // ACCESIBILIDAD: Título marcado como header
+            Semantics(
+              header: true,
+              child: const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "Actualizar Foto de Perfil",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Color(0xFF0277BD)),
+              leading: const ExcludeSemantics(
+                child: Icon(Icons.camera_alt, color: Color(0xFF0277BD)),
+              ),
               title: const Text('Tomar Foto con la Cámara'),
               onTap: () async {
                 Navigator.pop(context);
@@ -104,9 +123,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(
-                Icons.photo_library,
-                color: Color(0xFF0277BD),
+              leading: const ExcludeSemantics(
+                child: Icon(Icons.photo_library, color: Color(0xFF0277BD)),
               ),
               title: const Text('Elegir de la Galería'),
               onTap: () async {
@@ -141,6 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // --- CONTRASEÑA (CON REQUERIMIENTO DEL EQUIPO RECUPERADO) ---
   Future<void> _cambiarPassword() async {
     if (_currentPasswordController.text.isEmpty ||
         _newPasswordController.text.isEmpty) {
@@ -150,6 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
+    // VALIDACIÓN DEL EQUIPO: Verificar que no sean iguales
     if (_currentPasswordController.text == _newPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -183,67 +203,77 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // DIÁLOGO DE CONTRASEÑA (CON "OJITO" RECUPERADO Y A11Y)
   void _mostrarDialogoPassword() {
-    bool isCurrentPasswordVisible = false;
-    bool isNewPasswordVisible = false;
-
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
+            bool _isCurrentPasswordVisible = false;
+            bool _isNewPasswordVisible = false;
+
             return AlertDialog(
-              title: const Text('Cambiar Contraseña'),
+              title: Semantics(
+                header: true,
+                child: const Text('Cambiar Contraseña'),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Campo: Contraseña Actual
                   TextField(
                     controller: _currentPasswordController,
-                    obscureText:
-                        !isCurrentPasswordVisible, // Controla si se oculta o no
+                    obscureText: !_isCurrentPasswordVisible,
                     decoration: InputDecoration(
                       labelText: 'Contraseña Actual',
-                      // Icono de visibilidad (ojito)
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isCurrentPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: const Color(0xFF0277BD),
+                      // ACCESIBILIDAD Y DISEÑO: Ojito de visibilidad con etiqueta semántica
+                      suffixIcon: Semantics(
+                        button: true,
+                        label: _isCurrentPasswordVisible
+                            ? 'Ocultar contraseña'
+                            : 'Mostrar contraseña',
+                        child: IconButton(
+                          icon: Icon(
+                            _isCurrentPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: const Color(0xFF0277BD),
+                          ),
+                          onPressed: () {
+                            setStateDialog(() {
+                              _isCurrentPasswordVisible =
+                                  !_isCurrentPasswordVisible;
+                            });
+                          },
                         ),
-                        onPressed: () {
-                          // Actualizamos el estado local del diálogo
-                          setStateDialog(() {
-                            isCurrentPasswordVisible =
-                                !isCurrentPasswordVisible;
-                          });
-                        },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10), // Pequeño espacio
-                  // Campo: Nueva Contraseña
+                  const SizedBox(height: 10),
                   TextField(
                     controller: _newPasswordController,
-                    obscureText:
-                        !isNewPasswordVisible, // Controla si se oculta o no
+                    obscureText: !_isNewPasswordVisible,
                     decoration: InputDecoration(
                       labelText: 'Nueva Contraseña',
-                      // Icono de visibilidad (ojito)
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isNewPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: const Color(0xFF0277BD),
+                      // ACCESIBILIDAD Y DISEÑO: Ojito de visibilidad con etiqueta semántica
+                      suffixIcon: Semantics(
+                        button: true,
+                        label: _isNewPasswordVisible
+                            ? 'Ocultar contraseña'
+                            : 'Mostrar contraseña',
+                        child: IconButton(
+                          icon: Icon(
+                            _isNewPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: const Color(0xFF0277BD),
+                          ),
+                          onPressed: () {
+                            setStateDialog(() {
+                              _isNewPasswordVisible = !_isNewPasswordVisible;
+                            });
+                          },
                         ),
-                        onPressed: () {
-                          // Actualizamos el estado local del diálogo
-                          setStateDialog(() {
-                            isNewPasswordVisible = !isNewPasswordVisible;
-                          });
-                        },
                       ),
                     ),
                   ),
@@ -252,7 +282,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    // Limpiamos los controladores al cancelar
                     _currentPasswordController.clear();
                     _newPasswordController.clear();
                     Navigator.pop(context);
@@ -279,35 +308,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE1F5FE),
       appBar: AppBar(
-        title: const Text(
-          "Configuración",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        // ACCESIBILIDAD: Título marcado como header
+        title: Semantics(
+          header: true,
+          child: const Text(
+            "Configuración",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
         backgroundColor: const Color(0xFF0277BD),
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        leading: Semantics(
+          button: true,
+          label: 'Regresar',
+          child: IconButton(
+            icon: const ExcludeSemantics(
+              child: Icon(Icons.arrow_back, color: Colors.white),
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              _isEditing ? Icons.save : Icons.edit,
-              color: Colors.white,
+          // ACCESIBILIDAD: Le decimos al usuario para qué sirve el botón que está tocando
+          Semantics(
+            button: true,
+            label: _isEditing ? 'Guardar cambios' : 'Editar información',
+            child: IconButton(
+              icon: ExcludeSemantics(
+                child: Icon(
+                  _isEditing ? Icons.save : Icons.edit,
+                  color: Colors.white,
+                ),
+              ),
+              onPressed: () {
+                if (_isEditing) {
+                  _guardarDatosPersonales();
+                } else {
+                  setState(() => _isEditing = true);
+                }
+              },
             ),
-            onPressed: () {
-              if (_isEditing) {
-                _guardarDatosPersonales();
-              } else {
-                setState(() => _isEditing = true);
-              }
-            },
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Semantics(
+              label: 'Cargando configuraciones',
+              child: const Center(child: CircularProgressIndicator()),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -318,49 +367,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // --- FOTO DE PERFIL ---
                   Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 55,
-                        backgroundColor: const Color(0xFF0277BD),
-                        backgroundImage: _imagenLocalSeleccionada != null
-                            ? FileImage(_imagenLocalSeleccionada!)
-                                  as ImageProvider
-                            : (_fotoPerfilUrl != null &&
-                                      _fotoPerfilUrl!.isNotEmpty
-                                  ? NetworkImage(_fotoPerfilUrl!)
-                                  : null),
-                        child:
-                            (_imagenLocalSeleccionada == null &&
-                                (_fotoPerfilUrl == null ||
-                                    _fotoPerfilUrl!.isEmpty))
-                            ? const Icon(
-                                Icons.person,
-                                size: 60,
-                                color: Colors.white,
-                              )
-                            : null,
+                      ExcludeSemantics(
+                        child: CircleAvatar(
+                          radius: 55,
+                          backgroundColor: const Color(0xFF0277BD),
+                          backgroundImage: _imagenLocalSeleccionada != null
+                              ? FileImage(_imagenLocalSeleccionada!)
+                                    as ImageProvider
+                              : (_fotoPerfilUrl != null &&
+                                        _fotoPerfilUrl!.isNotEmpty
+                                    ? NetworkImage(_fotoPerfilUrl!)
+                                    : null),
+                          child:
+                              (_imagenLocalSeleccionada == null &&
+                                  (_fotoPerfilUrl == null ||
+                                      _fotoPerfilUrl!.isEmpty))
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
                       ),
                       Positioned(
                         bottom: 0,
                         right: 0,
-                        child: GestureDetector(
-                          onTap: _mostrarOpcionesDeFoto,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
+                        // ACCESIBILIDAD: Agregamos semántica de botón al ícono de la cámara
+                        child: Semantics(
+                          button: true,
+                          label: 'Cambiar foto de perfil',
+                          child: GestureDetector(
+                            onTap: _mostrarOpcionesDeFoto,
+                            child: Container(
+                              padding: const EdgeInsets.all(
+                                10,
+                              ), // Aumentamos un poquito el padding para hacer el Touch Target más grande
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const ExcludeSemantics(
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: Color(0xFF0277BD),
+                                  size: 20,
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Color(0xFF0277BD),
-                              size: 20,
+                              ),
                             ),
                           ),
                         ),
@@ -408,18 +468,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   _buildSectionTitle("Seguridad"),
                   const SizedBox(height: 10),
-                  ElevatedButton.icon(
-                    onPressed: _mostrarDialogoPassword,
-                    icon: const Icon(Icons.lock_reset, color: Colors.white),
-                    label: const Text(
-                      "Cambiar Contraseña",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0277BD),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                  Semantics(
+                    button: true,
+                    hint: 'Abre un diálogo para actualizar tu contraseña',
+                    child: ElevatedButton.icon(
+                      onPressed: _mostrarDialogoPassword,
+                      icon: const ExcludeSemantics(
+                        child: Icon(Icons.lock_reset, color: Colors.white),
+                      ),
+                      label: const Text(
+                        "Cambiar Contraseña",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0277BD),
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                       ),
                     ),
                   ),
@@ -431,14 +497,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF014F7E),
+    return Semantics(
+      header: true,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF014F7E),
+          ),
         ),
       ),
     );
@@ -459,9 +528,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
+        // ACCESIBILIDAD: Ocultar los íconos de campo para que el lector de pantalla no los lea (es ruido visual)
+        prefixIcon: ExcludeSemantics(
+          child: Icon(
+            icon,
+            color: isFieldEnabled ? const Color(0xFF0277BD) : Colors.grey[400],
+          ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),

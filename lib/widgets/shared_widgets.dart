@@ -23,12 +23,16 @@ Widget buildFormCard(
     ),
     child: Column(
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+        // ACCESIBILIDAD: Convertimos el título en un encabezado estructural
+        Semantics(
+          header: true,
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
           ),
         ),
         const SizedBox(height: 30),
@@ -44,12 +48,10 @@ Widget buildInput(
   String hint, {
   bool isPassword = false,
   TextEditingController? controller,
-  Widget? suffixIcon, // <-- Nuevo: Para poner el ojito
-  TextInputType?
-  keyboardType, // <-- Nuevo: Para cambiar el tipo de teclado (números)
-  List<TextInputFormatter>?
-  inputFormatters, // <-- Nuevo: Para forzar solo dígitos
-  int? maxLength, // <-- Nuevo: Para limitar a 10 caracteres
+  Widget? suffixIcon,
+  TextInputType? keyboardType,
+  List<TextInputFormatter>? inputFormatters,
+  int? maxLength,
 }) {
   return TextField(
     controller: controller,
@@ -58,9 +60,12 @@ Widget buildInput(
     inputFormatters: inputFormatters,
     maxLength: maxLength,
     decoration: InputDecoration(
-      counterText: "", // Oculta el contador de texto "0/10" debajo del input
-      prefixIcon: Icon(icon, color: const Color(0xFF0277BD)),
-      suffixIcon: suffixIcon, // Agregamos el ojito aquí
+      counterText: "",
+      // ACCESIBILIDAD: Ocultar los íconos decorativos para que el lector no sea redundante
+      prefixIcon: ExcludeSemantics(
+        child: Icon(icon, color: const Color(0xFF0277BD)),
+      ),
+      suffixIcon: suffixIcon,
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey[400]),
       contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
@@ -82,22 +87,31 @@ Widget buildInput(
 Widget buildPrimaryButton(
   BuildContext context,
   String text,
-  VoidCallback onPressed,
-) {
-  return SizedBox(
-    width: double.infinity,
-    height: 50,
-    child: ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF0277BD),
-        foregroundColor: Colors.white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  VoidCallback onPressed, {
+  String?
+  semanticHint, // ACCESIBILIDAD: Pista opcional para describir la acción del botón
+}) {
+  return Semantics(
+    button: true,
+    hint: semanticHint,
+    child: SizedBox(
+      width: double.infinity,
+      // ACCESIBILIDAD: Tu botón ya cumple con el área táctil mínima de 48x48
+      height: 50,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0277BD),
+          foregroundColor: Colors.white,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     ),
   );

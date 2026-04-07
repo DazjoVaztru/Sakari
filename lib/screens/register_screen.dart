@@ -92,6 +92,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: const Color(0xFF014F7E),
+        // ACCESIBILIDAD: Botón de regresar con etiqueta clara
+        leading: Semantics(
+          button: true,
+          label: 'Regresar a inicio de sesión',
+          child: IconButton(
+            icon: const ExcludeSemantics(child: Icon(Icons.arrow_back)),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -99,22 +108,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.how_to_reg, size: 60, color: Color(0xFF0277BD)),
-              const SizedBox(height: 10),
-              const Text(
-                "Activar mi Cuenta",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF014F7E),
+              // ACCESIBILIDAD: Ocultar el ícono decorativo gigante
+              const ExcludeSemantics(
+                child: Icon(
+                  Icons.how_to_reg,
+                  size: 60,
+                  color: Color(0xFF0277BD),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  "Para usar la app, debes estar registrado previamente en la clínica por tu dentista.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+              const SizedBox(height: 10),
+
+              // ACCESIBILIDAD: Marcar como encabezado principal
+              Semantics(
+                header: true,
+                child: const Text(
+                  "Activar mi Cuenta",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF014F7E),
+                  ),
+                ),
+              ),
+
+              // ACCESIBILIDAD: MergeSemantics para leer la instrucción de corrido
+              MergeSemantics(
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    "Para usar la app, debes estar registrado previamente en la clínica por tu dentista.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -147,30 +172,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     "Crea una contraseña",
                     isPassword: _obscurePassword, // Vinculado a la variable
                     controller: _passwordController,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
+                    // ACCESIBILIDAD: Botón de ojito con etiquetas semánticas
+                    suffixIcon: Semantics(
+                      button: true,
+                      label: _obscurePassword
+                          ? 'Mostrar contraseña'
+                          : 'Ocultar contraseña',
+                      child: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
                     ),
                   ),
                   const SizedBox(height: 25),
 
                   _isLoading
-                      ? const CircularProgressIndicator(
-                          color: Color(0xFF0277BD),
+                      ? Semantics(
+                          // ACCESIBILIDAD: Aviso de que está cargando
+                          label: 'Activando tu cuenta, por favor espera...',
+                          child: const CircularProgressIndicator(
+                            color: Color(0xFF0277BD),
+                          ),
                         )
                       : buildPrimaryButton(
                           context,
                           "Activar Cuenta",
                           _activarCuenta,
+                          // ACCESIBILIDAD: Hint con la instrucción del botón
+                          semanticHint:
+                              'Envía tus datos al servidor para activar tu cuenta en la clínica',
                         ),
                 ],
               ),

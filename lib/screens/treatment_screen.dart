@@ -50,7 +50,6 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
 
   Future<void> _cargarTratamientos() async {
     try {
-      // ✅ CORRECCIÓN 1: Cambiado a obtenerCatalogo
       final tratamientosApi = await TratamientosService.obtenerCatalogo(
         miToken,
       );
@@ -87,27 +86,38 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0277BD),
         elevation: 0,
-        title: const Text(
-          "Tratamientos",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        // ACCESIBILIDAD: Marcamos el título de la página como Header
+        title: Semantics(
+          header: true,
+          child: const Text(
+            "Tratamientos",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
         centerTitle: true,
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF0277BD)),
+          ? Semantics(
+              label: "Cargando tus tratamientos y servicios",
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF0277BD)),
+              ),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "En curso",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF014F7E),
+                  // ACCESIBILIDAD: Título de sección como Header
+                  Semantics(
+                    header: true,
+                    child: const Text(
+                      "En curso",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF014F7E),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -146,12 +156,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                     ),
 
                   const SizedBox(height: 30),
-                  const Text(
-                    "Catálogo de Servicios",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF014F7E),
+                  // ACCESIBILIDAD: Título de sección como Header
+                  Semantics(
+                    header: true,
+                    child: const Text(
+                      "Catálogo de Servicios",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF014F7E),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -174,207 +188,223 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   }
 
   Widget _buildActivoCard(Map<String, dynamic> activo) {
-    return Container(
-      width: 260,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0277BD), Color(0xFF014F7E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    // ACCESIBILIDAD: Agrupamos toda la información del tratamiento activo
+    return MergeSemantics(
+      child: Container(
+        width: 260,
+        margin: const EdgeInsets.only(right: 15),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0277BD), Color(0xFF014F7E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0277BD).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0277BD).withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Icon(
-                Icons.health_and_safety,
-                color: Colors.white,
-                size: 30,
-              ),
-              Builder(
-                builder: (context) {
-                  String estadoBackend = (activo['estado'] ?? 'Activo')
-                      .toString()
-                      .toLowerCase()
-                      .trim();
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // ACCESIBILIDAD: Ocultamos icono decorativo
+                const ExcludeSemantics(
+                  child: Icon(
+                    Icons.health_and_safety,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                ),
+                Builder(
+                  builder: (context) {
+                    String estadoBackend = (activo['estado'] ?? 'Activo')
+                        .toString()
+                        .toLowerCase()
+                        .trim();
 
-                  String estadoMostrar = "Activo";
-                  Color colorFondo = Colors.white.withOpacity(0.3);
+                    String estadoMostrar = "Activo";
+                    Color colorFondo = Colors.white.withOpacity(0.3);
 
-                  if (estadoBackend == 'atendido' ||
-                      estadoBackend == 'atendida' ||
-                      estadoBackend == 'completado' ||
-                      estadoBackend == 'completada' ||
-                      estadoBackend == 'finalizado' ||
-                      estadoBackend == 'concluido') {
-                    estadoMostrar = "Atendido";
-                    colorFondo = Colors.green.withOpacity(0.8);
-                  } else if (estadoBackend == 'cancelado' ||
-                      estadoBackend == 'cancelada') {
-                    estadoMostrar = "Cancelado";
-                    colorFondo = Colors.red.withOpacity(0.8);
-                  }
+                    if (estadoBackend == 'atendido' ||
+                        estadoBackend == 'atendida' ||
+                        estadoBackend == 'completado' ||
+                        estadoBackend == 'completada' ||
+                        estadoBackend == 'finalizado' ||
+                        estadoBackend == 'concluido') {
+                      estadoMostrar = "Atendido";
+                      colorFondo = Colors.green.withOpacity(0.8);
+                    } else if (estadoBackend == 'cancelado' ||
+                        estadoBackend == 'cancelada') {
+                      estadoMostrar = "Cancelado";
+                      colorFondo = Colors.red.withOpacity(0.8);
+                    }
 
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorFondo,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      estadoMostrar,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
                       ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                activo['nombre'] ?? 'Sin nombre',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                      decoration: BoxDecoration(
+                        color: colorFondo,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Semantics(
+                        label: 'Estado del tratamiento: ',
+                        child: Text(
+                          estadoMostrar,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                "Iniciado: ${activo['fecha_inicio'] ?? 'N/A'}",
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 13,
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activo['nombre'] ?? 'Sin nombre',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 5),
+                Text(
+                  "Iniciado: ${activo['fecha_inicio'] ?? 'N/A'}",
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTratamientoCard(TratamientoModel tratamiento) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE1F5FE),
-              borderRadius: BorderRadius.circular(15),
+    // ACCESIBILIDAD: Agrupamos para lectura corrida
+    return MergeSemantics(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
-            child: Icon(
-              // ✅ CORRECCIÓN 2: Acceder a categoria
-              _obtenerIcono(tratamiento.categoria),
-              color: const Color(0xFF0277BD),
-              size: 30,
+          ],
+        ),
+        child: Row(
+          children: [
+            ExcludeSemantics(
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE1F5FE),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  _obtenerIcono(tratamiento.categoria),
+                  color: const Color(0xFF0277BD),
+                  size: 30,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  // ✅ CORRECCIÓN 3: Cambiado a nombre
-                  tratamiento.nombre,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF014F7E),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tratamiento.nombre,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF014F7E),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  // ✅ CORRECCIÓN 4: Cambiado a categoria en lugar de descripcion
-                  tratamiento.categoria,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "\$${tratamiento.precio.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0277BD),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        _mostrarModalAgendar(
-                          // ✅ CORRECCIÓN 5: Cambiado a id y nombre
-                          tratamiento.id,
-                          tratamiento.nombre,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0277BD),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 5),
+                  Text(
+                    tratamiento.categoria,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "\$${tratamiento.precio.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF0277BD),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 5,
+                      ),
+                      // ACCESIBILIDAD: Se da un propósito claro al botón y se remueve el Size.zero
+                      Semantics(
+                        button: true,
+                        hint: 'Agendar cita para ${tratamiento.nombre}',
+                        child: ElevatedButton(
+                          onPressed: () {
+                            _mostrarModalAgendar(
+                              tratamiento.id,
+                              tratamiento.nombre,
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0277BD),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 8, // Ligeramente mayor padding vertical
+                            ),
+                            // ACCESIBILIDAD: Área de toque segura en lugar de Size.zero
+                            minimumSize: const Size(88, 36),
+                          ),
+                          child: const Text(
+                            "Agendar",
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
-                        minimumSize: Size.zero,
                       ),
-                      child: const Text(
-                        "Agendar",
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -382,11 +412,8 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   void _mostrarModalAgendar(int idServicio, String nombreServicio) {
     final BuildContext contextoPrincipal = context;
 
-    // 🔥 MAGIA: Función inteligente que busca el primer día disponible (Inicia 7 días después)
     DateTime buscarPrimerDiaLibre() {
-      DateTime diaPrueba = DateTime.now().add(
-        const Duration(days: 7), // 👈 Inicia 7 días después
-      );
+      DateTime diaPrueba = DateTime.now().add(const Duration(days: 7));
 
       for (int i = 0; i < 60; i++) {
         String fechaStr =
@@ -396,13 +423,9 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
             !_diasSemanaCerrados.contains(diaPrueba.weekday)) {
           return diaPrueba;
         }
-        diaPrueba = diaPrueba.add(
-          const Duration(days: 1),
-        );
+        diaPrueba = diaPrueba.add(const Duration(days: 1));
       }
-      return DateTime.now().add(
-        const Duration(days: 7), // 👈 Respaldo a 7 días
-      );
+      return DateTime.now().add(const Duration(days: 7));
     }
 
     showModalBottomSheet(
@@ -465,15 +488,17 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE1F5FE),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.event_available,
-                            color: Color(0xFF0277BD),
+                        ExcludeSemantics(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE1F5FE),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.event_available,
+                              color: Color(0xFF0277BD),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 15),
@@ -481,12 +506,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Agendar Cita",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF014F7E),
+                              // ACCESIBILIDAD: Título del Modal
+                              Semantics(
+                                header: true,
+                                child: const Text(
+                                  "Agendar Cita",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF014F7E),
+                                  ),
                                 ),
                               ),
                               Text(
@@ -500,17 +529,21 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                           ),
                         ),
                         if (pasoActual == 2)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit_calendar,
-                              color: Color(0xFF0277BD),
+                          Semantics(
+                            button: true,
+                            label: "Cambiar fecha seleccionada",
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.edit_calendar,
+                                color: Color(0xFF0277BD),
+                              ),
+                              onPressed: () {
+                                setModalState(() {
+                                  pasoActual = 1;
+                                  horaSeleccionada = null;
+                                });
+                              },
                             ),
-                            onPressed: () {
-                              setModalState(() {
-                                pasoActual = 1;
-                                horaSeleccionada = null;
-                              });
-                            },
                           ),
                       ],
                     ),
@@ -524,12 +557,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (pasoActual == 1) ...[
-                            const Text(
-                              "1. Selecciona el día",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                            // ACCESIBILIDAD: Título de paso
+                            Semantics(
+                              header: true,
+                              child: const Text(
+                                "1. Selecciona el día",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 15),
@@ -541,8 +578,9 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                               ),
                               child: CalendarDatePicker(
                                 initialDate: fechaTemp,
-                                // 👇 CAMBIO: Solo permite seleccionar fechas de 7 días en adelante
-                                firstDate: DateTime.now().add(const Duration(days: 7)),
+                                firstDate: DateTime.now().add(
+                                  const Duration(days: 7),
+                                ),
                                 lastDate: DateTime(2030),
                                 selectableDayPredicate: (DateTime day) {
                                   String fechaStr =
@@ -564,12 +602,16 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                               ),
                             ),
                           ] else ...[
-                            const Text(
-                              "2. Selecciona la hora",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                            // ACCESIBILIDAD: Título de paso
+                            Semantics(
+                              header: true,
+                              child: const Text(
+                                "2. Selecciona la hora",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 5),
@@ -621,35 +663,43 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                                 runSpacing: 10,
                                 children: horariosDisponibles.map((hora) {
                                   bool isSelected = hora == horaSeleccionada;
-                                  return InkWell(
-                                    onTap: () {
-                                      setModalState(() {
-                                        horaSeleccionada = hora;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 20,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? const Color(0xFF0277BD)
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(30),
-                                        border: Border.all(
+                                  // ACCESIBILIDAD: Se informa si el horario está o no seleccionado al lector
+                                  return Semantics(
+                                    button: true,
+                                    selected: isSelected,
+                                    label: 'Horario $hora',
+                                    child: InkWell(
+                                      onTap: () {
+                                        setModalState(() {
+                                          horaSeleccionada = hora;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
                                           color: isSelected
                                               ? const Color(0xFF0277BD)
-                                              : Colors.grey.shade300,
+                                              : Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                          border: Border.all(
+                                            color: isSelected
+                                                ? const Color(0xFF0277BD)
+                                                : Colors.grey.shade300,
+                                          ),
                                         ),
-                                      ),
-                                      child: Text(
-                                        hora,
-                                        style: TextStyle(
-                                          color: isSelected
-                                              ? Colors.white
-                                              : Colors.black87,
-                                          fontWeight: FontWeight.w500,
+                                        child: Text(
+                                          hora,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.black87,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -680,81 +730,89 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           height: 50,
-                          child: ElevatedButton(
-                            onPressed: isCargandoBoton
-                                ? null
-                                : () async {
-                                    setModalState(() => isCargandoBoton = true);
+                          // ACCESIBILIDAD: Botón semántico de confirmación final
+                          child: Semantics(
+                            button: true,
+                            hint:
+                                'Confirma y guarda tu cita médica en el sistema',
+                            child: ElevatedButton(
+                              onPressed: isCargandoBoton
+                                  ? null
+                                  : () async {
+                                      setModalState(
+                                        () => isCargandoBoton = true,
+                                      );
 
-                                    final Map<String, dynamic> resultado =
-                                        await CitasService.agendarNuevaCita(
-                                          miToken,
-                                          idServicio,
-                                          fechaTemp,
-                                          horaSeleccionada!,
-                                        );
+                                      final Map<String, dynamic> resultado =
+                                          await CitasService.agendarNuevaCita(
+                                            miToken,
+                                            idServicio,
+                                            fechaTemp,
+                                            horaSeleccionada!,
+                                          );
 
-                                    if (mounted) {
-                                      if (resultado['success'] == true) {
-                                        ScaffoldMessenger.of(
-                                          contextoPrincipal,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              resultado['message']
-                                                      ?.toString() ??
-                                                  "¡Cita agendada con éxito!",
+                                      if (mounted) {
+                                        if (resultado['success'] == true) {
+                                          ScaffoldMessenger.of(
+                                            contextoPrincipal,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                resultado['message']
+                                                        ?.toString() ??
+                                                    "¡Cita agendada con éxito!",
+                                              ),
+                                              backgroundColor: Colors.green,
                                             ),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                        _cargarTratamientos();
-                                        Navigator.of(contextoPrincipal).pop();
-                                      } else {
-                                        setModalState(
-                                          () => isCargandoBoton = false,
-                                        );
-                                        ScaffoldMessenger.of(
-                                          contextoPrincipal,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              resultado['message']
-                                                      ?.toString() ??
-                                                  "Error al agendar.",
+                                          );
+                                          _cargarTratamientos();
+                                          Navigator.of(contextoPrincipal).pop();
+                                        } else {
+                                          setModalState(
+                                            () => isCargandoBoton = false,
+                                          );
+                                          ScaffoldMessenger.of(
+                                            contextoPrincipal,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                resultado['message']
+                                                        ?.toString() ??
+                                                    "Error al agendar.",
+                                              ),
+                                              backgroundColor: Colors.red,
+                                              duration: const Duration(
+                                                seconds: 4,
+                                              ),
                                             ),
-                                            backgroundColor: Colors.red,
-                                            duration: const Duration(
-                                              seconds: 4,
-                                            ),
-                                          ),
-                                        );
+                                          );
+                                        }
                                       }
-                                    }
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0277BD),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0277BD),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
                               ),
+                              child: isCargandoBoton
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text(
+                                      "Confirmar Cita",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
-                            child: isCargandoBoton
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text(
-                                    "Confirmar Cita",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
                           ),
                         ),
                       ),
@@ -769,19 +827,20 @@ class _TreatmentScreenState extends State<TreatmentScreen> {
   }
 
   String _obtenerMes(int mes) {
+    // ACCESIBILIDAD: Meses completos para una pronunciación correcta en TalkBack/VoiceOver
     const meses = [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
     ];
     return meses[mes - 1];
   }
