@@ -8,7 +8,7 @@ import 'settings_screen.dart';
 import '../models/cita_model.dart';
 import '../services/citas_service.dart';
 import '../services/clinica_service.dart';
-import '../services/auth_service.dart'; // <--- NUEVO IMPORT para el perfil
+import '../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/publicidad_model.dart';
 import '../services/publicidad_service.dart';
@@ -22,10 +22,8 @@ class MainDashboard extends StatefulWidget {
 }
 
 class _MainDashboardState extends State<MainDashboard> {
-  // Variables de Estado
   bool tratamientoRealizado = true;
 
-  // Variables para la lista completa de citas
   List<CitaModel> citasProximas = [];
   bool isLoadingCita = true;
   List<PublicidadModel> listaPromociones = [];
@@ -35,8 +33,8 @@ class _MainDashboardState extends State<MainDashboard> {
   String miToken = "";
   String nombrePaciente = "Cargando...";
   String correoPaciente = "Cargando...";
-  String fotoPerfilUrl = ""; // <--- Aquí guardaremos la URL real
-  String direccionClinica = 'Centro, Tehuacán, Puebla'; // Dirección por defecto
+  String fotoPerfilUrl = "";
+  String direccionClinica = 'Centro, Tehuacán, Puebla';
 
   @override
   void initState() {
@@ -44,7 +42,6 @@ class _MainDashboardState extends State<MainDashboard> {
     _inicializarPantalla();
   }
 
-  // MODIFICADO: Ahora descarga los datos reales del perfil al iniciar
   Future<void> _inicializarPantalla() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? "";
@@ -54,15 +51,13 @@ class _MainDashboardState extends State<MainDashboard> {
     });
 
     if (miToken.isNotEmpty) {
-      // Cargamos el perfil real desde la API para asegurar que la foto aparezca
       final response = await AuthService.getProfile();
       if (mounted && response['success'] == true) {
         final paciente = response['paciente'];
         setState(() {
           nombrePaciente = paciente['nombre_completo'] ?? "Paciente";
           correoPaciente = paciente['email'] ?? "paciente@sakary.com";
-          fotoPerfilUrl =
-              paciente['foto_perfil'] ?? ""; // URL desde el servidor
+          fotoPerfilUrl = paciente['foto_perfil'] ?? "";
         });
       }
 
@@ -88,22 +83,17 @@ class _MainDashboardState extends State<MainDashboard> {
     if (mounted) {
       setState(() {
         final ahora = DateTime.now();
-
-        // 1. Solo nos aseguramos de que la cita no haya pasado ya
         var citasFiltradas = citas.where((cita) {
           return cita.fechaHoraInicio.isAfter(ahora);
         }).toList();
 
-        // 2. Ordenamos por fecha para que la más cercana quede al principio
         citasFiltradas.sort(
           (a, b) => a.fechaHoraInicio.compareTo(b.fechaHoraInicio),
         );
 
-        // 3. Tomamos SOLO la primera cita (la más próxima) sin importar cuándo sea
         if (citasFiltradas.isNotEmpty) {
           citasProximas = [citasFiltradas.first];
         } else {
-          // Si realmente no tiene ninguna cita a futuro, la dejamos vacía
           citasProximas = [];
         }
 
@@ -155,7 +145,6 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    // --- LÓGICA PARA RENDERIZADO CONDICIONAL DE BOTONES ---
     final citaPrimera = citasProximas.isNotEmpty ? citasProximas.first : null;
     final bool tieneHigiene =
         citaPrimera != null &&
@@ -171,26 +160,38 @@ class _MainDashboardState extends State<MainDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        // ACCESIBILIDAD: Etiqueta semántica para el botón de menú lateral
+        iconTheme: const IconThemeData(color: Color(0xFF0277BD)),
         actions: [
-          GestureDetector(
-            onTap: () {
-              // MEJORA: .then((_) => ...) recarga el Dashboard al volver de Settings
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              ).then((_) => _inicializarPantalla());
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                backgroundColor: const Color(0xFF0277BD),
-                radius: 18,
-                backgroundImage: fotoPerfilUrl.isNotEmpty
-                    ? NetworkImage(fotoPerfilUrl)
-                    : null,
-                child: fotoPerfilUrl.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white, size: 20)
-                    : null,
+          // ACCESIBILIDAD: Se envuelve el GestureDetector en Semantics para lectores de pantalla
+          Semantics(
+            button: true,
+            label: 'Abrir configuración y perfil',
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                ).then((_) => _inicializarPantalla());
+              },
+              // ACCESIBILIDAD: Área táctil expandida con padding
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: CircleAvatar(
+                  backgroundColor: const Color(0xFF0277BD),
+                  radius: 18,
+                  backgroundImage: fotoPerfilUrl.isNotEmpty
+                      ? NetworkImage(fotoPerfilUrl)
+                      : null,
+                  child: fotoPerfilUrl.isEmpty
+                      ? const Icon(Icons.person, color: Colors.white, size: 20)
+                      : null,
+                ),
               ),
             ),
           ),
@@ -200,28 +201,31 @@ class _MainDashboardState extends State<MainDashboard> {
         backgroundColor: Colors.white,
         child: Column(
           children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF0277BD)),
-              accountName: Text(
-                nombrePaciente,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            // ACCESIBILIDAD: MergeSemantics para leer los datos del paciente juntos
+            MergeSemantics(
+              child: UserAccountsDrawerHeader(
+                decoration: const BoxDecoration(color: Color(0xFF0277BD)),
+                accountName: Text(
+                  nombrePaciente,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              accountEmail: Text(correoPaciente),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                backgroundImage: fotoPerfilUrl.isNotEmpty
-                    ? NetworkImage(fotoPerfilUrl)
-                    : null,
-                child: fotoPerfilUrl.isEmpty
-                    ? const Icon(
-                        Icons.person,
-                        size: 50,
-                        color: Color(0xFF0277BD),
-                      )
-                    : null,
+                accountEmail: Text(correoPaciente),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  backgroundImage: fotoPerfilUrl.isNotEmpty
+                      ? NetworkImage(fotoPerfilUrl)
+                      : null,
+                  child: fotoPerfilUrl.isEmpty
+                      ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Color(0xFF0277BD),
+                        )
+                      : null,
+                ),
               ),
             ),
             Expanded(
@@ -295,9 +299,7 @@ class _MainDashboardState extends State<MainDashboard> {
                         MaterialPageRoute(
                           builder: (context) => const SettingsScreen(),
                         ),
-                      ).then(
-                        (_) => _inicializarPantalla(),
-                      ); // Refresca desde el Drawer
+                      ).then((_) => _inicializarPantalla());
                     },
                   ),
                 ],
@@ -328,12 +330,16 @@ class _MainDashboardState extends State<MainDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Hola, ${nombrePaciente.split(' ')[0]} 👋",
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF014F7E),
+            // ACCESIBILIDAD: El saludo se lee como encabezado
+            Semantics(
+              header: true,
+              child: Text(
+                "Hola, ${nombrePaciente.split(' ')[0]} 👋",
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF014F7E),
+                ),
               ),
             ),
             const Text(
@@ -362,74 +368,85 @@ class _MainDashboardState extends State<MainDashboard> {
                   itemCount: listaPromociones.length,
                   itemBuilder: (context, index) {
                     final promo = listaPromociones[index];
-                    return Container(
-                      width: MediaQuery.of(context).size.width - 40,
-                      margin: const EdgeInsets.only(right: 20),
-                      decoration: BoxDecoration(
-                        image: promo.imagenUrl.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(promo.imagenUrl),
-                                fit: BoxFit.cover,
-                                colorFilter: ColorFilter.mode(
-                                  Colors.black.withOpacity(0.5),
-                                  BlendMode.darken,
-                                ),
-                              )
-                            : null,
-                        gradient: promo.imagenUrl.isEmpty
-                            ? const LinearGradient(
-                                colors: [Color(0xFF0277BD), Color(0xFF4FC3F7)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0277BD).withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: -20,
-                            top: -20,
-                            child: CircleAvatar(
-                              radius: 80,
-                              backgroundColor: Colors.white.withOpacity(0.1),
+                    // ACCESIBILIDAD: Agrupa toda la info de la promo en una sola lectura
+                    return MergeSemantics(
+                      child: Container(
+                        width: MediaQuery.of(context).size.width - 40,
+                        margin: const EdgeInsets.only(right: 20),
+                        decoration: BoxDecoration(
+                          image: promo.imagenUrl.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(promo.imagenUrl),
+                                  fit: BoxFit.cover,
+                                  colorFilter: ColorFilter.mode(
+                                    Colors.black.withOpacity(0.5),
+                                    BlendMode.darken,
+                                  ),
+                                )
+                              : null,
+                          gradient: promo.imagenUrl.isEmpty
+                              ? const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0277BD),
+                                    Color(0xFF4FC3F7),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0277BD).withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
                             ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(25.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  promo.titulo,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
+                          ],
+                        ),
+                        child: Stack(
+                          children: [
+                            // ACCESIBILIDAD: Ocultar gráficos decorativos al lector
+                            ExcludeSemantics(
+                              child: Positioned(
+                                right: -20,
+                                top: -20,
+                                child: CircleAvatar(
+                                  radius: 80,
+                                  backgroundColor: Colors.white.withOpacity(
+                                    0.1,
                                   ),
                                 ),
-                                const SizedBox(height: 15),
-                                Text(
-                                  promo.descripcion,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+                            Padding(
+                              padding: const EdgeInsets.all(25.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    promo.titulo,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+                                  Text(
+                                    promo.descripcion,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -438,12 +455,15 @@ class _MainDashboardState extends State<MainDashboard> {
 
             const SizedBox(height: 35),
 
-            const Text(
-              "Tu Próxima Cita",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            Semantics(
+              header: true,
+              child: const Text(
+                "Tu Próxima Cita",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -456,49 +476,10 @@ class _MainDashboardState extends State<MainDashboard> {
                 ),
               )
             else if (citasProximas.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.event_busy, size: 50, color: Colors.grey),
-                    SizedBox(height: 10),
-                    Text(
-                      "No tienes citas próximas",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    Text(
-                      "Comunícate con la clínica para agendar tu próxima visita.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...citasProximas.map((cita) {
-                final DateTime fechaCita = cita.fechaHoraInicio;
-                final String estadoCita = cita.estadoCita;
-                return Container(
+              MergeSemantics(
+                child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
-                  margin: const EdgeInsets.only(bottom: 15),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -512,170 +493,241 @@ class _MainDashboardState extends State<MainDashboard> {
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE1F5FE),
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  child: const Icon(
-                                    Icons.calendar_month,
-                                    color: Color(0xFF0277BD),
-                                    size: 30,
-                                  ),
-                                ),
-                                const SizedBox(width: 15),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
-                                      style: const TextStyle(
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: estadoCita.toLowerCase() == 'confirmada'
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.orange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: estadoCita.toLowerCase() == 'confirmada'
-                                    ? Colors.green
-                                    : Colors.orange,
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              estadoCita.toUpperCase(),
-                              style: TextStyle(
-                                color: estadoCita.toLowerCase() == 'confirmada'
-                                    ? Colors.green.shade700
-                                    : Colors.orange.shade700,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        ],
+                      ExcludeSemantics(
+                        child: const Icon(
+                          Icons.event_busy,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 15),
-                        child: Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "No tienes citas próximas",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.blueGrey.shade50,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.medical_information,
-                              color: Color(0xFF0277BD),
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Tratamiento a realizar:",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  cita.nombreServicio,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Comunícate con la clínica para agendar tu próxima visita.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
                       ),
-                      if (cita.estadoCita.toLowerCase() != 'confirmada') ...[
-                        const SizedBox(height: 25),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...citasProximas.map((cita) {
+                final DateTime fechaCita = cita.fechaHoraInicio;
+                final String estadoCita = cita.estadoCita;
+
+                // ACCESIBILIDAD: Todo el contenedor de la cita es un solo bloque semántico
+                return MergeSemantics(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(bottom: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildActionButton(
-                                "Confirmar",
-                                const Color(0xFF0277BD),
-                                true,
-                                onTap: () => _accionConfirmar(cita.id),
+                              child: Row(
+                                children: [
+                                  ExcludeSemantics(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE1F5FE),
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: const Icon(
+                                        Icons.calendar_month,
+                                        color: Color(0xFF0277BD),
+                                        size: 30,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 15),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${fechaCita.day} de ${_obtenerMes(fechaCita.month)}, ${fechaCita.year}",
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${fechaCita.hour}:${fechaCita.minute.toString().padLeft(2, '0')} ${fechaCita.hour < 12 ? 'AM' : 'PM'}",
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _buildActionButton(
-                                "Reagendar",
-                                cita.haSidoReagendada
-                                    ? Colors.grey.shade400
-                                    : Colors.grey,
-                                false,
-                                onTap: () {
-                                  if (cita.haSidoReagendada) {
-                                    _mostrarAlertaLimiteReagendos();
-                                  } else {
-                                    _accionReagendar(cita);
-                                  }
-                                },
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: estadoCita.toLowerCase() == 'confirmada'
+                                    ? Colors.green.withOpacity(0.1)
+                                    : Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color:
+                                      estadoCita.toLowerCase() == 'confirmada'
+                                      ? Colors.green
+                                      : Colors.orange,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Semantics(
+                                label: "Estado de la cita: ",
+                                child: Text(
+                                  estadoCita.toUpperCase(),
+                                  style: TextStyle(
+                                    color:
+                                        estadoCita.toLowerCase() == 'confirmada'
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          child: Divider(
+                            color: Color(0xFFEEEEEE),
+                            thickness: 1,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            ExcludeSemantics(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.blueGrey.shade50,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.medical_information,
+                                  color: Color(0xFF0277BD),
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Tratamiento a realizar:",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    cita.nombreServicio,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (cita.estadoCita.toLowerCase() != 'confirmada') ...[
+                          const SizedBox(height: 25),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildActionButton(
+                                  "Confirmar",
+                                  const Color(0xFF0277BD),
+                                  true,
+                                  onTap: () => _accionConfirmar(cita.id),
+                                  semanticHint:
+                                      "Confirmar cita del ${fechaCita.day} de ${_obtenerMes(fechaCita.month)}",
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _buildActionButton(
+                                  "Reagendar",
+                                  cita.haSidoReagendada
+                                      ? Colors.grey.shade400
+                                      : Colors.grey,
+                                  false,
+                                  onTap: () {
+                                    if (cita.haSidoReagendada) {
+                                      _mostrarAlertaLimiteReagendos();
+                                    } else {
+                                      _accionReagendar(cita);
+                                    }
+                                  },
+                                  semanticHint: cita.haSidoReagendada
+                                      ? "Reagendar no disponible. Límite de reagendos alcanzado"
+                                      : "Abrir calendario para reagendar cita",
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 );
               }),
 
             const SizedBox(height: 35),
 
-            const Text(
-              "Acciones Rápidas",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            Semantics(
+              header: true,
+              child: const Text(
+                "Acciones Rápidas",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // Renderizado Condicional de Botones
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,6 +737,7 @@ class _MainDashboardState extends State<MainDashboard> {
                     icon: Icons.clean_hands,
                     label: "Higiene",
                     onTap: () => _mostrarRecomendacionesHigiene(context),
+                    semanticLabel: "Ver PDF de recomendaciones de Higiene",
                   ),
                   const SizedBox(width: 30),
                 ],
@@ -693,14 +746,16 @@ class _MainDashboardState extends State<MainDashboard> {
                     icon: Icons.health_and_safety,
                     label: "Cuidados",
                     onTap: () => _mostrarCuidadosPostTratamiento(context),
+                    semanticLabel: "Ver PDF de Cuidados post tratamiento",
                   ),
                   const SizedBox(width: 30),
                 ],
-                // El de ubicación SIEMPRE se muestra
                 _buildQuickActionItem(
                   icon: Icons.map,
                   label: "Ubicación",
                   onTap: _abrirGoogleMaps,
+                  semanticLabel:
+                      "Abrir Google Maps con la ubicación de la clínica",
                 ),
               ],
             ),
@@ -745,7 +800,6 @@ class _MainDashboardState extends State<MainDashboard> {
   void _accionReagendar(CitaModel citaAReagendar) {
     final BuildContext contextoPrincipal = context;
 
-    // Bloquear lógica para la fecha actual de la cita
     DateTime fechaCitaActual = DateTime(
       citaAReagendar.fechaHoraInicio.year,
       citaAReagendar.fechaHoraInicio.month,
@@ -821,14 +875,17 @@ class _MainDashboardState extends State<MainDashboard> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    pasoActual == 1
-                        ? "Selecciona el Día"
-                        : "Selecciona la Hora",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF014F7E),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      pasoActual == 1
+                          ? "Selecciona el Día"
+                          : "Selecciona la Hora",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF014F7E),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -887,41 +944,46 @@ class _MainDashboardState extends State<MainDashboard> {
                   ],
 
                   if (pasoActual == 2) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE1F5FE),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color(0xFF0277BD).withOpacity(0.3),
+                    MergeSemantics(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE1F5FE),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: const Color(0xFF0277BD).withOpacity(0.3),
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            "Nueva Fecha Seleccionada",
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            "${fechaTemp.day} de ${_obtenerMes(fechaTemp.month)}, ${fechaTemp.year}",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0277BD),
+                        child: Column(
+                          children: [
+                            const Text(
+                              "Nueva Fecha Seleccionada",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                          TextButton.icon(
-                            onPressed: () =>
-                                setModalState(() => pasoActual = 1),
-                            icon: const Icon(Icons.edit, size: 16),
-                            label: const Text("Cambiar día"),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.grey,
+                            const SizedBox(height: 5),
+                            Text(
+                              "${fechaTemp.day} de ${_obtenerMes(fechaTemp.month)}, ${fechaTemp.year}",
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0277BD),
+                              ),
                             ),
-                          ),
-                        ],
+                            TextButton.icon(
+                              onPressed: () =>
+                                  setModalState(() => pasoActual = 1),
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text("Cambiar día"),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 30),
@@ -1081,22 +1143,30 @@ class _MainDashboardState extends State<MainDashboard> {
     Function(String) onSelect,
   ) {
     bool isSelected = time == selected;
-    return GestureDetector(
-      onTap: () => onSelect(time),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0277BD) : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF0277BD) : Colors.grey.shade300,
+    // ACCESIBILIDAD: Decirle al usuario qué hora es y si está seleccionada
+    return Semantics(
+      button: true,
+      label: 'Horario $time',
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: () => onSelect(time),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF0277BD) : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF0277BD)
+                  : Colors.grey.shade300,
+            ),
           ),
-        ),
-        child: Text(
-          time,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w500,
+          child: Text(
+            time,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
@@ -1105,18 +1175,18 @@ class _MainDashboardState extends State<MainDashboard> {
 
   String _obtenerMes(int mes) {
     const meses = [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
     ];
     return meses[mes - 1];
   }
@@ -1127,7 +1197,6 @@ class _MainDashboardState extends State<MainDashboard> {
         citaPrimera.tipsHigiene.isNotEmpty &&
         citaPrimera.tipsHigiene.startsWith('http')) {
       final Uri urlPdf = Uri.parse(citaPrimera.tipsHigiene);
-
       try {
         if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {
           throw Exception('No se pudo abrir el PDF');
@@ -1150,7 +1219,6 @@ class _MainDashboardState extends State<MainDashboard> {
         citaPrimera.cuidados.isNotEmpty &&
         citaPrimera.cuidados.startsWith('http')) {
       final Uri urlPdf = Uri.parse(citaPrimera.cuidados);
-
       try {
         if (!await launchUrl(urlPdf, mode: LaunchMode.externalApplication)) {
           throw Exception('No se pudo abrir el PDF');
@@ -1171,47 +1239,58 @@ class _MainDashboardState extends State<MainDashboard> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required String semanticLabel,
     bool isEnabled = true,
   }) {
-    return GestureDetector(
-      onTap: isEnabled
-          ? onTap
-          : () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Sin acciones pendientes.")),
+    // ACCESIBILIDAD: Se envuelve la acción rápida en Semantics
+    return Semantics(
+      button: true,
+      label: isEnabled
+          ? "Acción rápida: $semanticLabel"
+          : "$label, no disponible en este momento",
+      child: GestureDetector(
+        onTap: isEnabled
+            ? onTap
+            : () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Sin acciones pendientes.")),
+              ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: isEnabled ? Colors.white : Colors.grey[300],
+                shape: BoxShape.circle,
+                boxShadow: isEnabled
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                    : null,
+              ),
+              // Excluimos la semántica del icono puro porque ya tenemos el label principal
+              child: ExcludeSemantics(
+                child: Icon(
+                  icon,
+                  color: isEnabled ? const Color(0xFF0277BD) : Colors.grey,
+                  size: 28,
+                ),
+              ),
             ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: isEnabled ? Colors.white : Colors.grey[300],
-              shape: BoxShape.circle,
-              boxShadow: isEnabled
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ]
-                  : null,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isEnabled ? Colors.grey : Colors.grey[400],
+              ),
             ),
-            child: Icon(
-              icon,
-              color: isEnabled ? const Color(0xFF0277BD) : Colors.grey,
-              size: 28,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isEnabled ? Colors.grey : Colors.grey[400],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1222,8 +1301,9 @@ class _MainDashboardState extends State<MainDashboard> {
     required VoidCallback onTap,
     Color color = const Color(0xFF0277BD),
   }) {
+    // ACCESIBILIDAD: El ListTile maneja muy bien el área táctil y la semántica nativa
     return ListTile(
-      leading: Icon(icon, color: color, size: 26),
+      leading: ExcludeSemantics(child: Icon(icon, color: color, size: 26)),
       title: Text(
         title,
         style: TextStyle(
@@ -1242,18 +1322,27 @@ class _MainDashboardState extends State<MainDashboard> {
     Color color,
     bool filled, {
     required VoidCallback onTap,
+    String? semanticHint,
   }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: filled ? color : Colors.white,
-        foregroundColor: filled ? Colors.white : color,
-        elevation: filled ? 2 : 0,
-        side: filled ? null : BorderSide(color: color.withOpacity(0.5)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+    return Semantics(
+      button: true,
+      hint: semanticHint,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: filled ? color : Colors.white,
+          foregroundColor: filled ? Colors.white : color,
+          elevation: filled ? 2 : 0,
+          side: filled ? null : BorderSide(color: color.withOpacity(0.5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+          // ACCESIBILIDAD: Garantizamos el tamaño mínimo de interacción
+          minimumSize: const Size(88, 48),
+        ),
+        child: Text(text),
       ),
-      child: Text(text),
     );
   }
 }
