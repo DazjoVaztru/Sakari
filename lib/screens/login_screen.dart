@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import 'main_dashboard.dart';
 import 'register_screen.dart';
@@ -35,6 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (response['success'] == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', response['access_token']);
+
       if (mounted) {
         Navigator.pushReplacement(
           context,

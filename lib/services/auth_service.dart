@@ -112,14 +112,13 @@ class AuthService {
   // --- 3. RECUPERAR CONTRASEÑA REAL ---
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      // 🚨 Apuntando directamente a la API de Node.js en Railway
-      final String nodeApiUrl =
-          'https://dentalconnectapi-production.up.railway.app/api/auth/forgot-password';
+      // 🚀 Ahora apuntamos directamente a Laravel usando la baseUrl
+      final String laravelApiUrl = '$baseUrl/recuperar-password';
 
-      print('Intentando conectar a Node.js: $nodeApiUrl');
+      print('Intentando conectar a Laravel: $laravelApiUrl');
 
       final response = await http.post(
-        Uri.parse(nodeApiUrl),
+        Uri.parse(laravelApiUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
